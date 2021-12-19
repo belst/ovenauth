@@ -20,4 +20,4 @@ url = "2.2.2"
 
 [dependencies.sqlx]
 version = "0.5.9"
-features = [ "postgres", "runtime-actix-native-tls", "offline", "json" ]
+features = [ "postgres", "runtime-actix-rustls", "offline", "json" ]

@@ -232,6 +232,8 @@ async fn main() -> anyhow::Result<()> {
     dotenv().ok();
 
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+    let host = env::var("HOST").expect("HOST is not set");
+    let port = env::var("PORT").expect("PORT is not set");
     let db_pool: PgPool = PgPoolOptions::new().connect(&db_url).await?;
 
     sqlx::migrate!("./migrations").run(&db_pool).await?;
@@ -248,7 +250,7 @@ async fn main() -> anyhow::Result<()> {
             .service(login)
             .service(logout)
     })
-    .bind("127.0.0.1:8080")?
+    .bind(format!("{}:{}", host, port))?
     .run()
     .await?;
 
