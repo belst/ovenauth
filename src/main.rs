@@ -1,9 +1,10 @@
 use actix_cors::Cors;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, middleware::Logger};
 use anyhow::bail;
 use chrono::Utc;
 use dotenv::dotenv;
+use env_logger::Env;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
@@ -86,7 +87,7 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Respond
         Ok(url) => url,
         Err(e) => {
             println!("{}", e);
-            return HttpResponse::Unauthorized().json(Response::new(
+            return HttpResponse::Ok().json(Response::new(
                 false,
                 None,
                 None,
@@ -109,7 +110,7 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Respond
             return HttpResponse::Ok().json(Response::allowed());
         }
     }
-    HttpResponse::Unauthorized().json(Response::new(
+    HttpResponse::Ok().json(Response::new(
         false,
         None,
         None,
@@ -241,6 +242,9 @@ async fn main() -> anyhow::Result<()> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set");
     let host = env::var("HOST").expect("HOST is not set");
     let port = env::var("PORT").expect("PORT is not set");
+
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     let db_pool: PgPool = PgPoolOptions::new().connect(&db_url).await?;
 
     sqlx::migrate!("./migrations").run(&db_pool).await?;
@@ -248,6 +252,7 @@ async fn main() -> anyhow::Result<()> {
     let secret: [u8; 32] = rand::thread_rng().gen();
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
             .wrap(Cors::permissive())
             .wrap(IdentityService::new(
                 CookieIdentityPolicy::new(&secret).name("auth").secure(true),
