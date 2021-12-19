@@ -1,15 +1,14 @@
 use actix_cors::Cors;
-use actix_web::{web, Responder, post, HttpServer, App, HttpResponse};
-use actix_identity::{IdentityService, CookieIdentityPolicy, Identity};
+use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::bail;
 use chrono::Utc;
+use dotenv::dotenv;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use dotenv::dotenv;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, FromRow};
+use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
+use std::{collections::HashMap, env};
 use url::Url;
-use std::{env, collections::HashMap};
-
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -49,7 +48,6 @@ enum Protocol {
     LLDash,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct Response {
     allowed: bool,
@@ -59,7 +57,12 @@ struct Response {
 }
 
 impl Response {
-    fn new(allowed: bool, new_url: Option<String>, lifetime: Option<u64>, reason: Option<String>) -> Self {
+    fn new(
+        allowed: bool,
+        new_url: Option<String>,
+        lifetime: Option<u64>,
+        reason: Option<String>,
+    ) -> Self {
         Self {
             allowed,
             new_url,
@@ -83,10 +86,16 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Respond
         Ok(url) => url,
         Err(e) => {
             println!("{}", e);
-            return HttpResponse::Unauthorized().json(Response::new(false, None, None, Some(format!("{}", e))));
+            return HttpResponse::Unauthorized().json(Response::new(
+                false,
+                None,
+                None,
+                Some(format!("{}", e)),
+            ));
         }
     };
-    let creds = url.query_pairs()
+    let creds = url
+        .query_pairs()
         .map(|(l, r)| (l.to_string(), r.to_string()))
         .collect::<HashMap<String, String>>();
 
@@ -100,7 +109,12 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Respond
             return HttpResponse::Ok().json(Response::allowed());
         }
     }
-    HttpResponse::Unauthorized().json(Response::new(false, None, None, Some("Missing credentials".to_string())))
+    HttpResponse::Unauthorized().json(Response::new(
+        false,
+        None,
+        None,
+        Some("Missing credentials".to_string()),
+    ))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,8 +129,10 @@ impl LoginCredentials {
             User,
             "select * from users where username = $1",
             self.username
-        ).fetch_one(db).await?;
-    
+        )
+        .fetch_one(db)
+        .await?;
+
         let verified = argon2::verify_encoded(&user.password, self.password.as_bytes())?;
 
         if verified {
@@ -136,8 +152,12 @@ struct User {
 }
 
 #[post("/login")]
-async fn login(id: Identity, creds: web::Json<LoginCredentials>, db: web::Data<PgPool>) -> impl Responder {
-    if let Some(_) = id.identity() {
+async fn login(
+    id: Identity,
+    creds: web::Json<LoginCredentials>,
+    db: web::Data<PgPool>,
+) -> impl Responder {
+    if id.identity().is_some() {
         return HttpResponse::Ok().json("Already logged in");
     }
 
@@ -157,6 +177,54 @@ async fn logout(id: Identity) -> impl Responder {
     HttpResponse::Ok().json("Logged out")
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct RegisterCreds {
+    username: String,
+    password: String,
+    secret_code: String,
+}
+
+#[post("/register")]
+async fn register(
+    id: Identity,
+    db: web::Data<PgPool>,
+    creds: web::Json<RegisterCreds>,
+) -> impl Responder {
+    let creds = creds.into_inner();
+    if creds.secret_code != "meme" {
+        return HttpResponse::Unauthorized().json("Invalid secret code");
+    }
+    let salt = rand::thread_rng().gen::<[u8; 16]>();
+    let password =
+        match argon2::hash_encoded(creds.password.as_bytes(), &salt, &argon2::Config::default()) {
+            Ok(password) => password,
+            Err(e) => {
+                dbg!(e);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+
+    let user = sqlx::query_as!(
+        User,
+        "insert into users (username, password) values ($1, $2) returning *",
+        creds.username,
+        password
+    )
+    .fetch_one(&**db)
+    .await;
+
+    let user = match user {
+        Ok(user) => user,
+        Err(e) => {
+            dbg!(e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    id.remember(user.id.to_string());
+    HttpResponse::Ok().json(user)
+}
+
 type PgPool = Pool<Postgres>;
 
 #[actix_web::main]
@@ -166,18 +234,13 @@ async fn main() -> anyhow::Result<()> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set");
     let db_pool: PgPool = PgPoolOptions::new().connect(&db_url).await?;
 
-
     let secret: [u8; 32] = rand::thread_rng().gen();
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
-            .wrap(
-                IdentityService::new(
-                    CookieIdentityPolicy::new(&secret)
-                        .name("auth")
-                        .secure(true),
-                )
-            )
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&secret).name("auth").secure(true),
+            ))
             .app_data(web::Data::new(db_pool.clone()))
             .service(webhook)
             .service(login)
