@@ -24,8 +24,7 @@ jobs:
         override: true
     - name: Release Build
       run: cargo build --release
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+    - name: Release binary
+      uses: softprops/action-gh-release@v1
       with:
-        name: ${{ env.PROJECT_NAME }}
-        path: target/release/${{ env.PROJECT_NAME }}
+        files: target/release/${{ env.PROJECT_NAME }}
