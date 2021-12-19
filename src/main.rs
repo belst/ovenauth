@@ -256,6 +256,7 @@ async fn main() -> anyhow::Result<()> {
             .service(webhook)
             .service(login)
             .service(logout)
+            .service(register)
     })
     .bind(format!("{}:{}", host, port))?
     .run()
