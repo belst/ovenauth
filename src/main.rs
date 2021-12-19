@@ -39,13 +39,18 @@ enum Direction {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
 enum Protocol {
+    #[serde(rename = "WebRTC")]
     WebRTC,
+    #[serde(rename = "RTMP")]
     Rtmp,
+    #[serde(rename = "SRT")]
     Srt,
+    #[serde(rename = "HLS")]
     Hls,
+    #[serde(rename = "DASH")]
     Dash,
+    #[serde(rename = "LLDASH")]
     LLDash,
 }
 
