@@ -234,6 +234,8 @@ async fn main() -> anyhow::Result<()> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set");
     let db_pool: PgPool = PgPoolOptions::new().connect(&db_url).await?;
 
+    sqlx::migrate!("./migrations").run(&db_pool).await?;
+
     let secret: [u8; 32] = rand::thread_rng().gen();
     HttpServer::new(move || {
         App::new()
