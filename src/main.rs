@@ -191,7 +191,14 @@ async fn register(
     creds: web::Json<RegisterCreds>,
 ) -> impl Responder {
     let creds = creds.into_inner();
-    if creds.secret_code != "meme" {
+    let secret = match env::var("SECRET_CODE") {
+        Ok(secret) => secret,
+        Err(e) => {
+            dbg!(e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+    if creds.secret_code != secret {
         return HttpResponse::Unauthorized().json("Invalid secret code");
     }
     let salt = rand::thread_rng().gen::<[u8; 16]>();
