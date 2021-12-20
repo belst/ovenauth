@@ -1192,6 +1192,7 @@ dependencies = [
  "chrono",
  "dotenv",
  "env_logger",
+ "log",
  "rand",
  "rust-argon2",
  "serde",

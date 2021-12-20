@@ -1,15 +1,19 @@
 use actix_cors::Cors;
-use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, middleware::Logger};
-use anyhow::bail;
+use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_web::{middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
 use chrono::Utc;
 use dotenv::dotenv;
 use env_logger::Env;
+use log::error;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
-use std::{collections::HashMap, env};
+use sqlx::{postgres::PgPoolOptions, PgPool};
+use std::env;
 use url::Url;
+
+mod user;
+
+use crate::user::Token;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -80,165 +84,55 @@ impl Response {
     fn allowed() -> Self {
         Self::new(true, None, None, None)
     }
+
+    fn redirect(new_url: String) -> Self {
+        Self::new(true, Some(new_url), None, None)
+    }
+
+    fn denied(reason: String) -> Self {
+        Self::new(false, None, None, Some(reason))
+    }
 }
 
 // TODO: verify X-OME-Signature
 #[post("/webhook")]
 async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Responder {
     if let Direction::Outgoing = body.request.direction {
+        // TODO Implement correct redirects
         return HttpResponse::Ok().json(Response::allowed());
     }
-    let url = match Url::parse(&body.request.url) {
+    let mut url = match Url::parse(&body.request.url) {
         Ok(url) => url,
         Err(e) => {
-            println!("{}", e);
-            return HttpResponse::Ok().json(Response::new(
-                false,
-                None,
-                None,
-                Some(format!("{}", e)),
-            ));
+            error!("{}", e);
+            return HttpResponse::Ok().json(Response::denied(format!("{}", e)));
         }
     };
-    let creds = url
-        .query_pairs()
-        .map(|(l, r)| (l.to_string(), r.to_string()))
-        .collect::<HashMap<String, String>>();
 
-    if let (Some(username), Some(password)) = (creds.get("username"), creds.get("password")) {
-        let creds = LoginCredentials {
-            username: username.to_string(),
-            password: password.to_string(),
-        };
+    let creds: Option<Vec<&str>> = url.path_segments().map(|s| s.collect());
 
-        if let Ok(_user) = creds.verify(&db).await {
-            return HttpResponse::Ok().json(Response::allowed());
-        }
-    }
-    HttpResponse::Ok().json(Response::new(
-        false,
-        None,
-        None,
-        Some("Missing credentials".to_string()),
-    ))
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginCredentials {
-    username: String,
-    password: String,
-}
-
-impl LoginCredentials {
-    async fn verify(&self, db: &PgPool) -> anyhow::Result<User> {
-        let user = sqlx::query_as!(
-            User,
-            "select * from users where username = $1",
-            self.username
-        )
-        .fetch_one(db)
-        .await?;
-
-        let verified = argon2::verify_encoded(&user.password, self.password.as_bytes())?;
-
-        if verified {
-            Ok(user)
-        } else {
-            bail!("Invalid credentials")
-        }
-    }
-}
-
-#[derive(Debug, FromRow, Serialize, Deserialize)]
-struct User {
-    id: i32,
-    username: String,
-    #[serde(skip)]
-    password: String,
-}
-
-#[post("/login")]
-async fn login(
-    id: Identity,
-    creds: web::Json<LoginCredentials>,
-    db: web::Data<PgPool>,
-) -> impl Responder {
-    if id.identity().is_some() {
-        return HttpResponse::Ok().json("Already logged in");
+    if creds.is_none() {
+        return HttpResponse::Ok().json(Response::denied("Invalid URL".to_string()));
     }
 
-    let creds = creds.into_inner();
-    if let Ok(user) = creds.verify(&db).await {
-        id.remember(user.id.to_string());
-        HttpResponse::Ok().json(user)
-    } else {
-        HttpResponse::Unauthorized().json("Invalid username or password")
+    let creds = creds.unwrap();
+
+    if creds.len() != 2 || creds[1] != "app" {
+        return HttpResponse::Ok().json(Response::denied("Invalid URL".to_string()));
     }
-}
 
-#[post("/logout")]
-async fn logout(id: Identity) -> impl Responder {
-    id.forget();
+    let token = creds[1];
 
-    HttpResponse::Ok().json("Logged out")
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct RegisterCreds {
-    username: String,
-    password: String,
-    secret_code: String,
-}
-
-#[post("/register")]
-async fn register(
-    id: Identity,
-    db: web::Data<PgPool>,
-    creds: web::Json<RegisterCreds>,
-) -> impl Responder {
-    let creds = creds.into_inner();
-    let secret = match env::var("SECRET_CODE") {
-        Ok(secret) => secret,
-        Err(e) => {
-            dbg!(e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
-    if creds.secret_code != secret {
-        return HttpResponse::Unauthorized().json("Invalid secret code");
-    }
-    let salt = rand::thread_rng().gen::<[u8; 16]>();
-    let password =
-        match argon2::hash_encoded(creds.password.as_bytes(), &salt, &argon2::Config::default()) {
-            Ok(password) => password,
-            Err(e) => {
-                dbg!(e);
-                return HttpResponse::InternalServerError().finish();
-            }
-        };
-
-    let user = sqlx::query_as!(
-        User,
-        "insert into users (username, password) values ($1, $2) returning *",
-        creds.username,
-        password
-    )
-    .fetch_one(&**db)
-    .await;
-
-    let user = match user {
+    let user = match Token::get_user_from_token(token, &db).await {
         Ok(user) => user,
         Err(e) => {
-            dbg!(e);
-            return HttpResponse::InternalServerError().finish();
+            error!("{}", e);
+            return HttpResponse::Ok().json(Response::denied(format!("{}", e)));
         }
     };
-
-    id.remember(user.id.to_string());
-    HttpResponse::Ok().json(user)
+    url.set_path(&format!("app/{}", user.username));
+    HttpResponse::Ok().json(Response::redirect(url.to_string()))
 }
-
-type PgPool = Pool<Postgres>;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -264,9 +158,9 @@ async fn main() -> anyhow::Result<()> {
             ))
             .app_data(web::Data::new(db_pool.clone()))
             .service(webhook)
-            .service(login)
-            .service(logout)
-            .service(register)
+            .service(user::login)
+            .service(user::logout)
+            .service(user::register)
     })
     .bind(format!("{}:{}", host, port))?
     .run()

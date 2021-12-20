@@ -1,5 +1,69 @@
 {
   "db": "PostgreSQL",
+  "0f1332a67b7a93664c2a505fc8879ffc57fa5c76b7bb70c76aaef719307810bc": {
+    "query": "select * from tokens where user_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "token",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "7609165d94c8f1bea9d535b9b7ad727fd06592973d7f83017292d41acb203be6": {
+    "query": "select * from users where id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "781491287efc1c424be304dfb98da17c4e7d8eed89d1b9ea25c8be55335353cf": {
     "query": "insert into users (username, password) values ($1, $2) returning *",
     "describe": {
