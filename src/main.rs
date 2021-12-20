@@ -117,8 +117,8 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Respond
 
     let creds = creds.unwrap();
 
-    if creds.len() != 2 || creds[1] != "app" {
-        return HttpResponse::Ok().json(Response::denied("Invalid URL".to_string()));
+    if creds.len() != 2 || creds[0] != "app" {
+        return HttpResponse::Ok().json(Response::denied("Unknown Application".to_string()));
     }
 
     let token = creds[1];
