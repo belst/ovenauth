@@ -32,6 +32,38 @@
       ]
     }
   },
+  "66459b9785b24fb00dc63b8c28b9371deb23bde834b222d97f1be3663368f92a": {
+    "query": "select u.* from users u, tokens t where u.id = t.user_id and t.token = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "7609165d94c8f1bea9d535b9b7ad727fd06592973d7f83017292d41acb203be6": {
     "query": "select * from users where id = $1",
     "describe": {
