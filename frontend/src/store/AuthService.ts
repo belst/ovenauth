@@ -5,7 +5,8 @@ import { ovenAuthClient } from './api';
 export function AuthService() {
   const [getUser, setUser] = createSignal();
   const [users, setUsers] = createSignal([]);
-  const client = ovenAuthClient('http://localhost:8080');
+  const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL + '/api';
+  const client = ovenAuthClient(endpoint);
 
   client.auth.me().then(setUser);
   client.common.users().then(setUsers);
