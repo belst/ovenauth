@@ -6,12 +6,14 @@ const Stream: Component = () => {
     const params = useParams();
     let ref;
 
+    const endpoint = import.meta.env.VITE_BASEURL;
+
     createEffect(() => {
         const player = OvenPlayer.create(ref.id, {
             sources: [
                 {
                     type: 'webrtc',
-                    file: `wss://fluss.bel.st/ws/${params.user}`,
+                    file: `wss://${endpoint}/ws/${params.user}`,
                 }
             ]
         });
