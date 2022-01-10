@@ -1,12 +1,18 @@
 use std::env;
 
 use actix_identity::Identity;
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder, get};
 use anyhow::{bail, Result};
 use log::error;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
+use serde_json::json;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginWrapper {
+    user: LoginCredentials,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginCredentials {
@@ -18,6 +24,7 @@ pub struct LoginCredentials {
 pub struct RegisterCreds {
     username: String,
     password: String,
+    password_confirmation: String,
     secret_code: String,
 }
 
@@ -109,6 +116,14 @@ impl User {
 
         Ok(tokens)
     }
+
+    pub async fn all(db: &PgPool) -> Result<Vec<User>> {
+        let users = sqlx::query_as!(User, "select * from users")
+            .fetch_all(db)
+            .await?;
+
+        Ok(users)
+    }
 }
 
 // ROUTES
@@ -133,7 +148,7 @@ pub async fn register(
     match User::create_from_creds(&creds, &db).await {
         Ok(user) => {
             id.remember(user.id.to_string());
-            HttpResponse::Ok().json(user)
+            HttpResponse::Ok().json(json!({"user": user}) )
         }
         Err(e) => {
             error!("{}", e);
@@ -152,17 +167,40 @@ pub async fn logout(id: Identity) -> impl Responder {
 #[post("/login")]
 async fn login(
     id: Identity,
-    creds: web::Json<LoginCredentials>,
+    creds: web::Json<LoginWrapper>,
     db: web::Data<PgPool>,
 ) -> impl Responder {
-    if id.identity().is_some() {
-        return HttpResponse::Ok().json("Already logged in");
-    }
+    // if id.identity().is_some() {
+    //     return HttpResponse::Ok().json("Already logged in");
+    // }
 
-    if let Ok(user) = User::from_creds(&creds, &db).await {
+    if let Ok(user) = User::from_creds(&creds.user, &db).await {
         id.remember(user.id.to_string());
-        HttpResponse::Ok().json(user)
+        HttpResponse::Ok().json(json!({"user": user}) )
     } else {
         HttpResponse::Unauthorized().json("Invalid username or password")
+    }
+}
+
+
+#[get("/users")]
+pub async fn index(db: web::Data<PgPool>) -> impl Responder {
+    match User::all(&db).await {
+        Ok(users) => HttpResponse::Ok().json(json!({"users": users})),
+        Err(e) => {
+            error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/user")]
+pub async fn me(id: Identity, db: web::Data<PgPool>) -> impl Responder {
+    match User::from_id(id.identity().unwrap().parse::<i32>().unwrap(), &db).await {
+        Ok(user) => HttpResponse::Ok().json(json!({"user": user})),
+        Err(e) => {
+            error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }

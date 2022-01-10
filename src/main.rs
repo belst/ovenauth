@@ -4,7 +4,7 @@ use actix_web::{middleware::Logger, post, web, App, HttpResponse, HttpServer, Re
 use chrono::Utc;
 use dotenv::dotenv;
 use env_logger::Env;
-use log::error;
+use log::{error, info};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -149,6 +149,8 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&db_pool).await?;
 
     let secret: [u8; 32] = rand::thread_rng().gen();
+
+    info!("Starting server on {}:{}", host, port);
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
@@ -161,6 +163,8 @@ async fn main() -> anyhow::Result<()> {
             .service(user::login)
             .service(user::logout)
             .service(user::register)
+            .service(user::index)
+            .service(user::me)
     })
     .bind(format!("{}:{}", host, port))?
     .run()
