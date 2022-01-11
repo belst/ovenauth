@@ -161,6 +161,38 @@
       ]
     }
   },
+  "ab33b7f99c33920e077ebf8e1a8cff26e900486f8b05fc6a1db32b76123af02d": {
+    "query": "select t.* from tokens t where t.user_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "token",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "c6b37fc8c7116e4a7c9e4671cdbecfa52e2121def2eec61d8ebed0fec2375314": {
     "query": "select * from users",
     "describe": {
