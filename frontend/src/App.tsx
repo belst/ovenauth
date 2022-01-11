@@ -1,18 +1,9 @@
 import { useRoutes } from "solid-app-router";
-import { Component, lazy } from "solid-js";
+import { Component } from "solid-js";
 // import Login from "./Login";
 import Navbar from "./Navbar";
 
-const routes = [
-  {
-    path: "/:user",
-    component: lazy(() => import("./Stream")),
-  },
-  {
-    path: '**',
-    component: lazy(() => import("./Home")),
-  }
-]
+import { routes } from "./routes";
 
 const App: Component = () => {
   const Router = useRoutes(routes)

@@ -1,13 +1,14 @@
 import { Link } from "solid-app-router";
 import { Component, For } from "solid-js";
 import { useService } from "solid-services";
+import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
 
 const Home: Component = () => {
     const authService = useService(AuthService);
 
     return <>
-        <div class="container mx-auto">
+        <Layout>
             <For each={authService().users}>
                 {(user) =>
                     <div class="card lg:card-side card-bordered">
@@ -21,7 +22,7 @@ const Home: Component = () => {
                     </div>
                 }
             </For>
-        </div>
+        </Layout>
     </>;
 };
 

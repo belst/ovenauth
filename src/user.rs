@@ -1,17 +1,17 @@
 use std::env;
 
 use actix_identity::Identity;
-use actix_web::{post, web, HttpResponse, Responder, get};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{bail, Result};
 use log::error;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
 use serde_json::json;
+use sqlx::{FromRow, PgPool};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LoginWrapper {
-    user: LoginCredentials,
+pub struct UserWrapper<T: std::fmt::Debug + Serialize> {
+    user: T,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -54,6 +54,18 @@ impl Token {
         .await?;
 
         Ok(user)
+    }
+
+    pub async fn get_tokens_by_user_id(user_id: i32, pool: &PgPool) -> Result<Vec<Self>> {
+        let tokens = sqlx::query_as!(
+            Self,
+            "select t.* from tokens t where t.user_id = $1",
+            user_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(tokens)
     }
 }
 
@@ -132,9 +144,9 @@ impl User {
 pub async fn register(
     id: Identity,
     db: web::Data<PgPool>,
-    creds: web::Json<RegisterCreds>,
+    creds: web::Json<UserWrapper<RegisterCreds>>,
 ) -> impl Responder {
-    let creds = creds.into_inner();
+    let creds = creds.into_inner().user;
     let secret = match env::var("SECRET_CODE") {
         Ok(secret) => secret,
         Err(e) => {
@@ -148,7 +160,7 @@ pub async fn register(
     match User::create_from_creds(&creds, &db).await {
         Ok(user) => {
             id.remember(user.id.to_string());
-            HttpResponse::Ok().json(json!({"user": user}) )
+            HttpResponse::Ok().json(json!({ "user": user }))
         }
         Err(e) => {
             error!("{}", e);
@@ -161,13 +173,13 @@ pub async fn register(
 pub async fn logout(id: Identity) -> impl Responder {
     id.forget();
 
-    HttpResponse::Ok().json("Logged out")
+    HttpResponse::Ok().json(json!({}))
 }
 
 #[post("/login")]
 async fn login(
     id: Identity,
-    creds: web::Json<LoginWrapper>,
+    creds: web::Json<UserWrapper<LoginCredentials>>,
     db: web::Data<PgPool>,
 ) -> impl Responder {
     // if id.identity().is_some() {
@@ -176,17 +188,16 @@ async fn login(
 
     if let Ok(user) = User::from_creds(&creds.user, &db).await {
         id.remember(user.id.to_string());
-        HttpResponse::Ok().json(json!({"user": user}) )
+        HttpResponse::Ok().json(json!({ "user": user }))
     } else {
         HttpResponse::Unauthorized().json("Invalid username or password")
     }
 }
 
-
 #[get("/users")]
 pub async fn index(db: web::Data<PgPool>) -> impl Responder {
     match User::all(&db).await {
-        Ok(users) => HttpResponse::Ok().json(json!({"users": users})),
+        Ok(users) => HttpResponse::Ok().json(json!({ "users": users })),
         Err(e) => {
             error!("{}", e);
             HttpResponse::InternalServerError().finish()
@@ -196,8 +207,29 @@ pub async fn index(db: web::Data<PgPool>) -> impl Responder {
 
 #[get("/user")]
 pub async fn me(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    match User::from_id(id.identity().unwrap().parse::<i32>().unwrap(), &db).await {
-        Ok(user) => HttpResponse::Ok().json(json!({"user": user})),
+    let id = match id.identity() {
+        Some(id) => id.parse::<i32>().unwrap(),
+        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
+    };
+
+    match User::from_id(id, &db).await {
+        Ok(user) => HttpResponse::Ok().json(json!({ "user": user })),
+        Err(e) => {
+            error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/tokens")]
+pub async fn tokens_route(id: Identity, db: web::Data<PgPool>) -> impl Responder {
+    let id = match id.identity() {
+        Some(id) => id.parse::<i32>().unwrap(),
+        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
+    };
+
+    match Token::get_tokens_by_user_id(id, &db).await {
+        Ok(tokens) => HttpResponse::Ok().json(json!({ "tokens": tokens })),
         Err(e) => {
             error!("{}", e);
             HttpResponse::InternalServerError().finish()
