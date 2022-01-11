@@ -165,6 +165,7 @@ async fn main() -> anyhow::Result<()> {
             .service(user::register)
             .service(user::index)
             .service(user::me)
+            .service(user::tokens_route)
     })
     .bind(format!("{}:{}", host, port))?
     .run()

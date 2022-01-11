@@ -1,4 +1,4 @@
-import { IUser } from "../types/user.interface";
+import { IToken, IUser } from "../types/user.interface";
 
 function httpClient(endpoint: string, request: typeof fetch) {
     // let auth = "";
@@ -35,7 +35,7 @@ function httpClient(endpoint: string, request: typeof fetch) {
 
     return {
         get(url: string, params: Record<string, string | number> = {}) {
-            return (key = "") => 
+            return (key = "") =>
                 makeRequest(
                     'GET',
                     `${url}?${new URLSearchParams(params as any)}`,
@@ -44,7 +44,7 @@ function httpClient(endpoint: string, request: typeof fetch) {
                 );
         },
         delete(url: string, params: Record<string, string | number> = {}) {
-            return (key = "") => 
+            return (key = "") =>
                 makeRequest(
                     'DELETE',
                     `${url}?${new URLSearchParams(params as any)}`,
@@ -68,6 +68,9 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
         common: {
             users(): Promise<IUser[]> {
                 return client.get('/users')('users');
+            },
+            tokens(): Promise<IToken[]> {
+                return client.get('/tokens')('tokens');
             },
         },
 
