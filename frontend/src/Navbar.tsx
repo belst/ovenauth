@@ -21,7 +21,7 @@ const Navbar: Component = () => {
             </div>
             <div class="flex-1 px-2 mx-2">
                 <div class="items-stretch hidden lg:flex">
-                    <NavLink href="/" class="btn btn-ghost btn-sm rounded-btn">
+                    <NavLink activeClass="btn-active" end href="/" class="btn btn-ghost btn-sm rounded-btn">
                         Home
                     </NavLink>
                 </div>
@@ -30,7 +30,7 @@ const Navbar: Component = () => {
                 <Match when={authService().user}>
                     <div class="flex-none">
                         <div class="items-strech hidden lg:flex">
-                            <NavLink href="/dashboard" class="btn btn-ghost btn-sm rounded-btn">
+                            <NavLink activeClass="btn-active" href="/dashboard" class="btn btn-ghost btn-sm rounded-btn">
                                 {authService().user.username}
                             </NavLink>
                         </div>
@@ -46,14 +46,14 @@ const Navbar: Component = () => {
                 <Match when={!authService().user}>
                     <div class="flex-none">
                         <div class="items-strech hidden lg:flex">
-                            <NavLink href="/login" class="btn btn-ghost btn-sm rounded-btn">
+                            <NavLink activeClass="btn-active" href="/login" class="btn btn-ghost btn-sm rounded-btn">
                                 Login
                             </NavLink>
                         </div>
                     </div>
                     <div class="flex-none">
                         <div class="items-strech hidden lg:flex">
-                            <NavLink href="/register" class="btn btn-ghost btn-sm rounded-btn">
+                            <NavLink activeClass="btn-active" href="/register" class="btn btn-ghost btn-sm rounded-btn">
                                 Register
                             </NavLink>
                         </div>

@@ -43,8 +43,13 @@ const Dashboard: Component = () => {
                         <ul class="menu p-4 overflow-y-auto w-80 bg-base-100 text-base-content">
                             <For each={tokens()}>
                                 {(token) => (
-                                    <li classList={{ bordered: token.token === selectedToken()?.token }}>
-                                        <a onclick={(_e) => setSelectedToken(token)}>{token.name}</a>
+                                    <li>
+                                        <a
+                                            classList={{ active: token.token === selectedToken()?.token }}
+                                            onclick={(_e) => setSelectedToken(token)}
+                                        >
+                                            {token.name}
+                                        </a>
                                     </li>
                                 )}
                             </For>
