@@ -19,7 +19,7 @@
   "dependencies": {
     "@felte/solid": "^0.3.0",
     "daisyui": "^1.17.1",
-    "ovenplayer": "^0.10.15",
+    "ovenplayer": "^0.10.16",
     "solid-app-router": "^0.2.0",
     "solid-js": "^1.3.0",
     "solid-services": "^2.0.0"

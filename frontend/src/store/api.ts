@@ -80,7 +80,7 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
             },
 
             register(user: { username: string, password: string, password_confirmation: string, secret_code: string }): Promise<IUser> {
-                return client.post('/users', { user })('user');
+                return client.post('/register', { user })('user');
             },
 
             me(): Promise<IUser> {
