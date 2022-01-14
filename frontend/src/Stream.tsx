@@ -1,5 +1,5 @@
 import { useParams } from "solid-app-router";
-import { Component, createEffect } from "solid-js";
+import { Component, createEffect, onCleanup, onMount } from "solid-js";
 import OvenPlayer from 'ovenplayer';
 
 const Stream: Component = () => {
@@ -8,8 +8,10 @@ const Stream: Component = () => {
 
     const endpoint = import.meta.env.VITE_BASEURL;
 
-    createEffect(() => {
-        const player = OvenPlayer.create(ref.id, {
+    let player;
+
+    onMount(() => {
+        player = OvenPlayer.create(ref, {
             sources: [
                 {
                     type: 'webrtc',
@@ -17,6 +19,11 @@ const Stream: Component = () => {
                 }
             ]
         });
+        player.play();
+    });
+
+    onCleanup(() => {
+        player?.remove();
     });
 
     return (
