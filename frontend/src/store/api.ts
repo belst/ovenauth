@@ -1,4 +1,4 @@
-import { IToken, IUser } from "../types/user.interface";
+import { IStreamOption, IUser } from "../types/user.interface";
 
 function httpClient(endpoint: string, request: typeof fetch) {
     // let auth = "";
@@ -69,9 +69,12 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
             users(): Promise<IUser[]> {
                 return client.get('/users')('users');
             },
-            tokens(): Promise<IToken[]> {
-                return client.get('/tokens')('tokens');
+            options(): Promise<IStreamOption> {
+                return client.get('/options')('options');
             },
+            reset(): Promise<void> {
+                return client.post('/reset')();
+            }
         },
 
         auth: {

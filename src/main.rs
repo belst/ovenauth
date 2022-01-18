@@ -1,6 +1,9 @@
 use actix_cors::Cors;
 use actix_identity::{CookieIdentityPolicy, IdentityService};
-use actix_web::{middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    body::BoxBody, middleware::Logger, post, web, App, HttpRequest, HttpResponse, HttpServer,
+    Responder,
+};
 use chrono::Utc;
 use dotenv::dotenv;
 use env_logger::Env;
@@ -13,7 +16,7 @@ use url::Url;
 
 mod user;
 
-use crate::user::Token;
+use crate::user::StreamOption;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
@@ -94,44 +97,51 @@ impl Response {
     }
 }
 
+impl Responder for Response {
+    type Body = BoxBody;
+    fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
+        HttpResponse::Ok().json(&self)
+    }
+}
+
 // TODO: verify X-OME-Signature
 #[post("/webhook")]
-async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> impl Responder {
+async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> Response {
     if let Direction::Outgoing = body.request.direction {
         // TODO Implement correct redirects
-        return HttpResponse::Ok().json(Response::allowed());
+        return Response::allowed();
     }
     let mut url = match Url::parse(&body.request.url) {
         Ok(url) => url,
         Err(e) => {
             error!("{}", e);
-            return HttpResponse::Ok().json(Response::denied(format!("{}", e)));
+            return Response::denied(format!("{}", e));
         }
     };
 
     let creds: Option<Vec<&str>> = url.path_segments().map(|s| s.collect());
 
     if creds.is_none() {
-        return HttpResponse::Ok().json(Response::denied("Invalid URL".to_string()));
+        return Response::denied("Invalid URL".to_string());
     }
 
     let creds = creds.unwrap();
 
     if creds.len() != 2 || creds[0] != "app" {
-        return HttpResponse::Ok().json(Response::denied("Unknown Application".to_string()));
+        return Response::denied("Unknown Application".to_string());
     }
 
     let token = creds[1];
 
-    let user = match Token::get_user_from_token(token, &db).await {
+    let user = match StreamOption::get_user_from_token(token, &db).await {
         Ok(user) => user,
         Err(e) => {
             error!("{}", e);
-            return HttpResponse::Ok().json(Response::denied(format!("{}", e)));
+            return Response::denied(format!("{}", e));
         }
     };
     url.set_path(&format!("app/{}", user.username));
-    HttpResponse::Ok().json(Response::redirect(url.to_string()))
+    Response::redirect(url.to_string())
 }
 
 #[actix_web::main]
@@ -165,7 +175,8 @@ async fn main() -> anyhow::Result<()> {
             .service(user::register)
             .service(user::index)
             .service(user::me)
-            .service(user::tokens_route)
+            .service(user::options)
+            .service(user::reset)
     })
     .bind(format!("{}:{}", host, port))?
     .run()

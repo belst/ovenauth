@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { IToken, IUser } from '../types/user.interface';
+import { IUser } from '../types/user.interface';
 import { ovenAuthClient } from './api';
 
 export function AuthService() {

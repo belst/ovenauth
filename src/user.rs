@@ -5,7 +5,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{bail, Result};
 use log::error;
 use rand::Rng;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, __private::de::IdentifierDeserializer};
 use serde_json::json;
 use sqlx::{FromRow, PgPool};
 
@@ -34,20 +34,21 @@ pub struct User {
     pub username: String,
     #[serde(skip)]
     pub password: String,
+    pub hidden: bool,
 }
 
 #[derive(FromRow, Debug, Serialize)]
-pub struct Token {
+pub struct StreamOption {
     pub token: String,
     pub user_id: i32,
     pub name: String,
 }
 
-impl Token {
+impl StreamOption {
     pub async fn get_user_from_token(token: &str, pool: &PgPool) -> Result<User> {
         let user = sqlx::query_as!(
             User,
-            "select u.* from users u, tokens t where u.id = t.user_id and t.token = $1",
+            "select u.* from users u, options o where u.id = o.user_id and o.token = $1",
             token
         )
         .fetch_one(pool)
@@ -56,16 +57,16 @@ impl Token {
         Ok(user)
     }
 
-    pub async fn get_tokens_by_user_id(user_id: i32, pool: &PgPool) -> Result<Vec<Self>> {
-        let tokens = sqlx::query_as!(
+    pub async fn from_user_id(user_id: i32, pool: &PgPool) -> Result<Option<Self>> {
+        let ooptions = sqlx::query_as!(
             Self,
-            "select t.* from tokens t where t.user_id = $1",
+            "select o.* from options o where o.user_id = $1",
             user_id
         )
-        .fetch_all(pool)
+        .fetch_optional(pool)
         .await?;
 
-        Ok(tokens)
+        Ok(ooptions)
     }
 }
 
@@ -121,16 +122,20 @@ impl User {
         Ok(user)
     }
 
-    pub async fn get_tokens(&self, db: &PgPool) -> Result<Vec<Token>> {
-        let tokens = sqlx::query_as!(Token, "select * from tokens where user_id = $1", self.id)
-            .fetch_all(db)
-            .await?;
+    pub async fn get_tokens(&self, db: &PgPool) -> Result<StreamOption> {
+        let tokens = sqlx::query_as!(
+            StreamOption,
+            "select * from options where user_id = $1",
+            self.id
+        )
+        .fetch_one(db)
+        .await?;
 
         Ok(tokens)
     }
 
     pub async fn all(db: &PgPool) -> Result<Vec<User>> {
-        let users = sqlx::query_as!(User, "select * from users")
+        let users = sqlx::query_as!(User, "select * from users where hidden = false")
             .fetch_all(db)
             .await?;
 
@@ -221,18 +226,46 @@ pub async fn me(id: Identity, db: web::Data<PgPool>) -> impl Responder {
     }
 }
 
-#[get("/tokens")]
-pub async fn tokens_route(id: Identity, db: web::Data<PgPool>) -> impl Responder {
+#[get("/options")]
+pub async fn options(id: Identity, db: web::Data<PgPool>) -> impl Responder {
     let id = match id.identity() {
         Some(id) => id.parse::<i32>().unwrap(),
         None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
     };
 
-    match Token::get_tokens_by_user_id(id, &db).await {
-        Ok(tokens) => HttpResponse::Ok().json(json!({ "tokens": tokens })),
+    match StreamOption::from_user_id(id, &db).await {
+        Ok(options) => HttpResponse::Ok().json(json!({ "options": options })),
         Err(e) => {
             error!("{}", e);
             HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[post("/reset")]
+pub async fn reset(id: Identity, db: web::Data<PgPool>) -> impl Responder {
+    let id = match id.identity() {
+        Some(id) => id.parse::<i32>().unwrap(),
+        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
+    };
+
+    match sqlx::query!(
+        "
+        insert into options
+            (name, user_id, token)
+        values
+            ('Stream Token', $1, MD5(random()::text))
+        on conflict (user_id) do update
+        set token = MD5(random()::text)",
+        id
+    )
+    .execute(&**db)
+    .await
+    {
+        Ok(_) => HttpResponse::Ok().json(json!({})),
+        Err(e) => {
+            error!("{}", e);
+            return HttpResponse::InternalServerError().finish();
         }
     }
 }
