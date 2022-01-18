@@ -1,7 +1,93 @@
 {
   "db": "PostgreSQL",
-  "0f1332a67b7a93664c2a505fc8879ffc57fa5c76b7bb70c76aaef719307810bc": {
-    "query": "select * from tokens where user_id = $1",
+  "084dd8530ff743db8df29b4d8715f37b8ffb9a31ed1c3b4611913d2ed808a88d": {
+    "query": "select * from users where hidden = false",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "hidden",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "16edda85ef35e4116c9896a763d77e687dff418f64c925027b351d4c3fd06d06": {
+    "query": "\n        insert into options\n            (name, user_id, token)\n        values\n            ('Stream Token', $1, MD5(random()::text))\n        on conflict (user_id) do update\n        set token = MD5(random()::text)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "2367484f946515e791bfa6ac01f0c1085b1ff10273aaa1aaf872bbcd156ceaca": {
+    "query": "select u.* from users u, options o where u.id = o.user_id and o.token = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "password",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "hidden",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "3c92ae379ba2127ed03064df61048ac91d377071b6898173a0cae2c982eba0ce": {
+    "query": "select * from options where user_id = $1",
     "describe": {
       "columns": [
         {
@@ -32,38 +118,6 @@
       ]
     }
   },
-  "66459b9785b24fb00dc63b8c28b9371deb23bde834b222d97f1be3663368f92a": {
-    "query": "select u.* from users u, tokens t where u.id = t.user_id and t.token = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 1,
-          "name": "username",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "password",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "7609165d94c8f1bea9d535b9b7ad727fd06592973d7f83017292d41acb203be6": {
     "query": "select * from users where id = $1",
     "describe": {
@@ -81,6 +135,44 @@
         {
           "ordinal": 2,
           "name": "password",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "hidden",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "76891399dc032b695c915eda51af2cdd41486ac3fa05960957ae7d53b2fb2d28": {
+    "query": "select o.* from options o where o.user_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "token",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
           "type_info": "Text"
         }
       ],
@@ -114,6 +206,11 @@
           "ordinal": 2,
           "name": "password",
           "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "hidden",
+          "type_info": "Bool"
         }
       ],
       "parameters": {
@@ -123,6 +220,7 @@
         ]
       },
       "nullable": [
+        false,
         false,
         false,
         false
@@ -147,6 +245,11 @@
           "ordinal": 2,
           "name": "password",
           "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "hidden",
+          "type_info": "Bool"
         }
       ],
       "parameters": {
@@ -156,67 +259,6 @@
       },
       "nullable": [
         false,
-        false,
-        false
-      ]
-    }
-  },
-  "ab33b7f99c33920e077ebf8e1a8cff26e900486f8b05fc6a1db32b76123af02d": {
-    "query": "select t.* from tokens t where t.user_id = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "user_id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 1,
-          "name": "token",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false
-      ]
-    }
-  },
-  "c6b37fc8c7116e4a7c9e4671cdbecfa52e2121def2eec61d8ebed0fec2375314": {
-    "query": "select * from users",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 1,
-          "name": "username",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "password",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": []
-      },
-      "nullable": [
         false,
         false,
         false
