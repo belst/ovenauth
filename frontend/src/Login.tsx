@@ -4,6 +4,7 @@ import { AuthService } from "./store/AuthService";
 import { prevent } from "./utils/preventDefault";
 import { useLocation, useNavigate } from "solid-app-router";
 import Layout from "./Layout";
+import Title from "./Title";
 
 
 const Login: Component = () => {
@@ -36,6 +37,7 @@ const Login: Component = () => {
 
   return (
     <Layout>
+      <Title value="Login" />
       <form onSubmit={prevent(submit)}>
         <div class="form-control">
           <label class="label">
