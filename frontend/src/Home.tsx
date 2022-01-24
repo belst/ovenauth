@@ -3,17 +3,19 @@ import { Component, For } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
+import Title from "./Title";
 
 const Home: Component = () => {
     const authService = useService(AuthService);
     const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL;
 
     return <>
+        <Title value="Home" />
         <Layout>
-            <div class="flex space-x-4">
+            <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-4">
                 <For each={authService().users}>
                     {(user) =>
-                        <div class="basis-1/4 aspect-video card shadow-xl card-bordered image-full">
+                        <div class="aspect-video card shadow-xl card-bordered image-full">
                             <figure class="aspect-video">
                                 <img src={`${endpoint}/thumbs/${user.username}/thumb.png`} />
                             </figure>

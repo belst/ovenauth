@@ -3,6 +3,7 @@ import { Component, createMemo, createResource, createSignal, Show } from "solid
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
+import Title from "./Title";
 
 const Dashboard: Component = () => {
 
@@ -37,11 +38,18 @@ const Dashboard: Component = () => {
     return inputtype() === 'password' ? visibleicon : visibleofficon;
   });
 
+  let input: HTMLInputElement;
+
+  const copy = () => {
+    navigator.clipboard.writeText(input.value);
+  }
+
   return (
     <>
       <Show when={authService().user === null}>
         <Navigate href="/login" state={{ redirectTo: '/dashboard' }} />
       </Show>
+      <Title value="Dashboard" />
       <Layout>
         <div class="rounded-lg shadow bg-base-200 drawer drawer-mobile h-52">
           <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
@@ -49,8 +57,9 @@ const Dashboard: Component = () => {
             <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
             <div class="text-xs text-center">
               <div class="form-control relative flex flex-row">
-                <input class="input font-mono box-content input-bordered rounded-r-none w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
+                <input ref={input} class="input font-mono box-content input-bordered bordered-r-none rounded-r-none w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
                 <button type="button" onclick={toggletype} class="top-0 rounded-none btn btn-primary">{icon()}</button>
+                <button type="button" onclick={copy} class="top-0 rounded-none btn btn-primary">Copy</button>
                 <button type="button" onclick={reset} class="top-0 rounded-l-none btn btn-primary">{options() ? 'reset' : 'create'}</button>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { Component, createMemo, createSignal, Show } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
+import Title from "./Title";
 import { prevent } from "./utils/preventDefault";
 
 const Register: Component = () => {
@@ -37,6 +38,7 @@ const Register: Component = () => {
 
     return (
         <Layout>
+            <Title value="Register" />
             <form onSubmit={prevent(submit)}>
                 <div class="form-control">
                     <label class="label">
