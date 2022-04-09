@@ -31,7 +31,7 @@ const Stream: Component = () => {
     return (
         <>
             <Title value={params.user} />
-            <div style="margin: 0 auto; height: calc(100vh - 48px - 16px - 16px); width: calc((100vh - 48px - 16px - 16px) * 1.77777777778)">
+            <div style="margin: 0 auto; height: calc(100vh - 48px - 16px - 16px); width: calc((100vh - 48px - 16px - 16px) * 1.77777777778) max-width: 100%">
                 <div id="player" ref={ref}></div>
             </div>
         </>
