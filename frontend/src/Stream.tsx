@@ -9,8 +9,7 @@ const Stream: Component = () => {
     const endpoint = import.meta.env.VITE_BASEURL;
 
     const css = {
-        'aspect-ration': '16 / 9',
-        margin: '0 auto',
+        'aspect-ratio': '16 / 9',
         'max-width': '100%',
         'max-height': 'calc(100vh - 48px - 16px - 16px)',
     };
