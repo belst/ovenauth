@@ -10,7 +10,7 @@ use env_logger::Env;
 use log::{error, info};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::PgPool;
 use std::env;
 use url::Url;
 
@@ -154,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let db_pool: PgPool = PgPoolOptions::new().connect(&db_url).await?;
+    let db_pool = PgPool::connect(&db_url).await?;
 
     sqlx::migrate!("./migrations").run(&db_pool).await?;
 
