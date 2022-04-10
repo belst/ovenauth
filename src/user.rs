@@ -5,7 +5,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{bail, Result};
 use log::error;
 use rand::Rng;
-use serde::{Deserialize, Serialize, __private::de::IdentifierDeserializer};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, PgPool};
 
@@ -48,7 +48,7 @@ impl StreamOption {
     pub async fn get_user_from_token(token: &str, pool: &PgPool) -> Result<User> {
         let user = sqlx::query_as!(
             User,
-            "select u.* from users u, options o where u.id = o.user_id and o.token = $1",
+            "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
             token
         )
         .fetch_one(pool)
@@ -60,7 +60,7 @@ impl StreamOption {
     pub async fn from_user_id(user_id: i32, pool: &PgPool) -> Result<Option<Self>> {
         let ooptions = sqlx::query_as!(
             Self,
-            "select o.* from options o where o.user_id = $1",
+            "select o.token, o.user_id, o.name from options o where o.user_id = $1",
             user_id
         )
         .fetch_optional(pool)
@@ -72,17 +72,25 @@ impl StreamOption {
 
 impl User {
     pub async fn from_id(id: i32, db: &PgPool) -> Result<User> {
-        let user = sqlx::query_as!(User, "select * from users where id = $1", id)
-            .fetch_one(db)
-            .await?;
+        let user = sqlx::query_as!(
+            User,
+            "select id, username, password, hidden from users where id = $1",
+            id
+        )
+        .fetch_one(db)
+        .await?;
 
         Ok(user)
     }
 
     pub async fn from_username(username: &str, db: &PgPool) -> Result<User> {
-        let user = sqlx::query_as!(User, "select * from users where username = $1", username)
-            .fetch_one(db)
-            .await?;
+        let user = sqlx::query_as!(
+            User,
+            "select id, username, password, hidden from users where username = $1",
+            username
+        )
+        .fetch_one(db)
+        .await?;
 
         Ok(user)
     }
@@ -90,7 +98,7 @@ impl User {
     pub async fn from_creds(creds: &LoginCredentials, db: &PgPool) -> Result<User> {
         let user = sqlx::query_as!(
             User,
-            "select * from users where username = $1",
+            "select id, username, password, hidden from users where username = $1",
             &creds.username
         )
         .fetch_one(db)
@@ -112,7 +120,7 @@ impl User {
 
         let user = sqlx::query_as!(
             User,
-            "insert into users (username, password) values ($1, $2) returning *",
+            "insert into users (username, password) values ($1, $2) returning id, username, password, hidden",
             &creds.username,
             &password
         )
@@ -125,7 +133,7 @@ impl User {
     pub async fn get_tokens(&self, db: &PgPool) -> Result<StreamOption> {
         let tokens = sqlx::query_as!(
             StreamOption,
-            "select * from options where user_id = $1",
+            "select token, user_id, name from options where user_id = $1",
             self.id
         )
         .fetch_one(db)
@@ -249,7 +257,7 @@ pub async fn reset(id: Identity, db: web::Data<PgPool>) -> impl Responder {
         None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
     };
 
-    match sqlx::query!(
+    let q = sqlx::query!(
         "
         insert into options
             (name, user_id, token)
@@ -258,10 +266,9 @@ pub async fn reset(id: Identity, db: web::Data<PgPool>) -> impl Responder {
         on conflict (user_id) do update
         set token = MD5(random()::text)",
         id
-    )
-    .execute(&**db)
-    .await
-    {
+    );
+
+    match q.execute(&**db).await {
         Ok(_) => HttpResponse::Ok().json(json!({})),
         Err(e) => {
             error!("{}", e);
