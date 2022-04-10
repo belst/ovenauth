@@ -7,7 +7,7 @@ export interface PlayerProps {
     instance: string,
 }
 
-
+// TODO: make this a directive instead of a component
 const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (props) => {
     let ref: HTMLDivElement;
 
@@ -48,7 +48,9 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
     });
 
     return (
-        <div {...divProps} ref={ref}></div>
+        <div {...divProps}>
+            <div ref={ref}></div>
+        </div>
     );
 };
 
