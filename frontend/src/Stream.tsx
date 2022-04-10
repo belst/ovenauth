@@ -1,42 +1,28 @@
 import { useParams } from "solid-app-router";
-import { Component, createEffect, onCleanup, onMount } from "solid-js";
-import OvenPlayer from 'ovenplayer';
-import { useRegistry } from "solid-services";
+import { Component } from "solid-js";
 import Title from "./Title";
+import Player from "./Player";
 
 const Stream: Component = () => {
     const params = useParams();
-    let ref;
 
     const endpoint = import.meta.env.VITE_BASEURL;
 
-    let player;
-
-    onMount(() => {
-        player = OvenPlayer.create(ref, {
-            sources: [
-                {
-                    type: 'webrtc',
-                    file: `wss://${endpoint}/ws/${params.user}`,
-                }
-            ]
-        });
-        player.play();
-    });
-
-    onCleanup(() => {
-        player?.remove();
-    });
+    const css = {
+        'aspect-ratio': '16 / 9',
+        'max-width': '100%',
+        'max-height': 'calc(100vh - 48px - 16px - 16px)',
+        margin: '0 auto'
+    };
 
     return (
         <>
             <Title value={params.user} />
-            <div style="margin: 0 auto; height: calc(100vh - 48px - 16px - 16px); width: calc((100vh - 48px - 16px - 16px) * 1.77777777778)">
-                <div id="player" ref={ref}></div>
+            <div>
+                <Player style={css} url={`wss://${endpoint}/ws/${params.user}`} instance={params.user} autoplay={true} id="player"></Player>
             </div>
         </>
     );
 };
 
 export default Stream;
-
