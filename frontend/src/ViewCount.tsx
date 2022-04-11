@@ -9,5 +9,10 @@ export default function ViewCount(props) {
     const viewCount = async () => (await statService().getViewers(props.name));
     const [vc, { refetch }] = createResource<number>(viewCount); 
 
-    return <h5>{vc()} Viewers</h5> 
+    function viewers(): string {
+        let count = vc();
+        return count < 0 ? 'Offline' : count > 1 ? count + ' Viewers' : count + ' Viewer'
+    }
+
+    return <h5>{viewers()}</h5> 
 }
