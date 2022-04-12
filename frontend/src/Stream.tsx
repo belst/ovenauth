@@ -11,7 +11,7 @@ const Stream: Component = () => {
     const css = {
         'aspect-ratio': '16 / 9',
         'max-width': '100%',
-        'max-height': 'calc(100vh - 48px - 16px - 16px)',
+        'max-height': '100vh',
         margin: '0 auto'
     };
 
@@ -19,7 +19,12 @@ const Stream: Component = () => {
         <>
             <Title value={params.user} />
             <div>
-                <Player style={css} url={`wss://${endpoint}/ws/${params.user}`} instance={params.user} autoplay={true} id="player"></Player>
+                <Player
+                    style={css}
+                    url={`wss://${endpoint}/ws/${params.user}`}
+                    instance={params.user} autoplay={true}
+                    scroll={true}
+                    id="player"></Player>
             </div>
         </>
     );
