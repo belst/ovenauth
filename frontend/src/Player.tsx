@@ -5,20 +5,28 @@ export interface PlayerProps {
     url: string,
     autoplay: boolean,
     instance: string,
+    scroll?: boolean,
 }
 
 // TODO: make this a directive instead of a component
 const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (props) => {
     let ref: HTMLDivElement;
 
-    const [playerProps, divProps] = splitProps(props, ['url', 'autoplay', 'instance']);
+    const [playerProps, divProps] = splitProps(props, ['url', 'autoplay', 'instance', 'scroll']);
 
     onMount(() => {
         const [volume, setVolume] = createSignal(+(localStorage.getItem(`volume_${playerProps.instance}`) || 100));
 
         createEffect(() => localStorage.setItem(`volume_${playerProps.instance}`, volume().toString(10)));
 
-        const player = OvenPlayer.create(ref, {
+        if (playerProps.scroll) {
+            setTimeout(() => ref.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            }), 0);
+        }
+
+        const player = OvenPlayer.create(ref.firstElementChild as HTMLDivElement, {
             volume: volume(),
             autoStart: playerProps.autoplay ?? false,
             webrtcConfig: {
@@ -48,8 +56,8 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
     });
 
     return (
-        <div {...divProps}>
-            <div ref={ref}></div>
+        <div ref={ref} {...divProps}>
+            <div></div>
         </div>
     );
 };
