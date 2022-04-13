@@ -3,7 +3,9 @@ import { Component, For } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
+import { StatService } from "./store/StatService";
 import Title from "./Title";
+import ViewCount from "./ViewCount";
 
 const Home: Component = () => {
     const authService = useService(AuthService);
@@ -21,6 +23,7 @@ const Home: Component = () => {
                             </figure>
                             <div class="justify-end card-body">
                                 <h2 class="card-title">{user.username}</h2>
+                                <ViewCount name={user.username}></ViewCount>
                                 <div class="card-actions">
                                     <Link href={`/${user.username}`} class="btn btn-primary">Watch</Link>
                                 </div>

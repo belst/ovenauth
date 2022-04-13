@@ -65,6 +65,13 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
     const client = httpClient(endpoint, request);
 
     return {
+        stats: {
+            viewerCount(user: string): Promise<number> {
+                return client.get('/viewers/' + user)('response').then(response => {
+                    return response.totalConnections
+                }).catch(_ => -1);
+            }
+        },
         common: {
             users(): Promise<IUser[]> {
                 return client.get('/users')('users');
