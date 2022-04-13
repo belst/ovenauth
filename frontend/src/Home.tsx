@@ -10,6 +10,11 @@ const Home: Component = () => {
     const authService = useService(AuthService);
     const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL;
 
+    const fallbackimage = (el) => {
+        const pxtransparent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+        el.target.src = pxtransparent;
+    }
+
     return <>
         <Title value="Home" />
         <Layout>
@@ -18,7 +23,7 @@ const Home: Component = () => {
                     {(user) =>
                         <div class="aspect-video card shadow-xl card-bordered image-full">
                             <figure class="aspect-video">
-                                <img src={`${endpoint}/thumbs/${user.username}/thumb.png`} />
+                                <img class="bg-gradient-to-tl from-neutral-content to-neutral" src={`${endpoint}/thumbs/${user.username}/thumb.png`} onError={fallbackimage} />
                             </figure>
                             <div class="justify-end card-body">
                                 <h2 class="card-title">{user.username}</h2>
