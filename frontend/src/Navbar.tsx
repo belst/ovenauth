@@ -1,5 +1,5 @@
 import { NavLink } from "solid-app-router";
-import { Component, Match, Switch } from "solid-js";
+import { Component, Switch, Match } from "solid-js";
 import { useService } from "solid-services";
 import { AuthService } from "./store/AuthService";
 
@@ -16,7 +16,7 @@ const Navbar: Component = () => {
         <div class="navbar mb-2 shadow-lg bg-neutral text-neutral-content">
             <div class="flex-none px-2 mx-2">
                 <span class="text-lg font-bold">
-                    Flussen statt Zucken
+                {import.meta.env.VITE_PAGE_TITLE}
                 </span>
             </div>
             <div class="flex-1 px-2 mx-2">

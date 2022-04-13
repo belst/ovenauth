@@ -1,9 +1,11 @@
 import { useParams } from "solid-app-router";
-import {Component, createResource, Show} from "solid-js";
-import Title from "./Title";
+import { Component, createResource, Show} from "solid-js";
+import { useService } from "solid-services";
 import Player from "./Player";
-import {useService} from "solid-services";
 import {AuthService} from "./store/AuthService";
+import { viewCounter } from "./directives/viewCounter"
+
+viewCounter
 
 const Stream: Component = () => {
     const params = useParams();
@@ -31,7 +33,7 @@ const Stream: Component = () => {
 
     return (
         <>
-            <Title value={params.user} />
+            <div use:viewCounter={[params.user, 10000]}></div>
             <div>
                 <Show when={(!token.loading || typeof token() === 'string') && token() !== 'error'} fallback={fallback}>
                     <Player
