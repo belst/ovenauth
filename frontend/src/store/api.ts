@@ -69,7 +69,7 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
             viewerCount(user: string): Promise<number> {
                 return client.get('/viewers/' + user)('response').then(response => {
                     return response.totalConnections
-                }).catch(err => -1);
+                }).catch(_ => -1);
             }
         },
         common: {
