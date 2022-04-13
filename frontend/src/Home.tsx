@@ -1,18 +1,15 @@
 import { Link } from "solid-app-router";
-import { Component, For, Match } from "solid-js";
+import { Component, For } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
 import { StatService } from "./store/StatService";
 import Title from "./Title";
-import { lazy, Suspense } from "solid-js";
 import ViewCount from "./ViewCount";
 
 const Home: Component = () => {
     const authService = useService(AuthService);
-    const statService = useService(StatService);
     const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL;
-
 
     return <>
         <Title value="Home" />
