@@ -44,5 +44,11 @@ export function AuthService() {
       setUser(user);
       return user;
     },
+
+    async getToken(): Promise<String> {
+      const token = await client.auth.getToken();
+      return token;
+    }
+
   }
 }

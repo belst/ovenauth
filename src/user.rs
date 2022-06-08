@@ -1,13 +1,14 @@
 use std::env;
 
 use actix_identity::Identity;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder, HttpRequest};
 use anyhow::{bail, Result};
 use log::error;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, PgPool};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserWrapper<T: std::fmt::Debug + Serialize> {
@@ -42,6 +43,11 @@ pub struct StreamOption {
     pub token: String,
     pub user_id: i32,
     pub name: String,
+}
+
+#[derive(FromRow, Debug, Serialize)]
+pub struct WebAuthToken {
+    pub token: String,
 }
 
 impl StreamOption {
@@ -81,6 +87,38 @@ impl User {
         .await?;
 
         Ok(user)
+    }
+
+    pub async fn put_webauth_token(id: i32, token: &str, db: &PgPool) -> Result<()> {
+
+        let token = sqlx::query_as!(
+            WebAuthToken,
+            "insert into webauthtokens (id, token)
+            values ($1, $2)
+            on CONFLICT (id)
+            do
+                update set token = $2
+            ",
+            id,
+            &token
+        )
+            .fetch_optional(db)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn from_webauth_token(username: &str, db: &PgPool) -> Result<WebAuthToken> {
+
+        let token = sqlx::query_as!(
+            WebAuthToken,
+            "select token from webauthtokens where id = (select id from users where username = $1)",
+            username
+        )
+            .fetch_one(db)
+            .await?;
+
+        Ok(token)
     }
 
     pub async fn from_username(username: &str, db: &PgPool) -> Result<User> {
@@ -211,6 +249,54 @@ async fn login(
 pub async fn index(db: web::Data<PgPool>) -> impl Responder {
     match User::all(&db).await {
         Ok(users) => HttpResponse::Ok().json(json!({ "users": users })),
+        Err(e) => {
+            error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[put("/generateToken")]
+pub async fn generate_token(id: Identity, db: web::Data<PgPool>) -> impl Responder {
+
+    let id = match id.identity() {
+        Some(id) => id.parse::<i32>().unwrap(),
+        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
+    };
+
+    let token = Uuid::new_v4().to_string();
+
+    match User::put_webauth_token(id, &token, &db).await {
+        Ok(_) => HttpResponse::Ok().json(json!({ "token": token })),
+        Err(e) => {
+            error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct TokenInfo {
+    username: String,
+    token: String,
+}
+
+#[get("/submitToken")]
+pub async fn submitToken(db: web::Data<PgPool>, web::Query(info): web::Query<TokenInfo>) -> impl Responder {
+
+
+    let username = info.username;
+    let token = info.token;
+
+    match User::from_webauth_token(&username, &db).await {
+        Ok(dbToken) => {
+            if dbToken.token.eq(&token) {
+                HttpResponse::Ok().finish()
+                //TODO drop token
+            }  else {
+                HttpResponse::InternalServerError().finish()
+            }
+        },
         Err(e) => {
             error!("{}", e);
             HttpResponse::InternalServerError().finish()

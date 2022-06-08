@@ -1,0 +1,3 @@
+#!/bin/sh
+cargo sqlx prepare
+docker build -t ovenauth .

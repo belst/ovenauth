@@ -1,7 +1,9 @@
 import { useParams } from "solid-app-router";
-import { Component } from "solid-js";
+import {Component, createResource, Show} from "solid-js";
 import Title from "./Title";
 import Player from "./Player";
+import {useService} from "solid-services";
+import {AuthService} from "./store/AuthService";
 
 const Stream: Component = () => {
     const params = useParams();
@@ -15,16 +17,31 @@ const Stream: Component = () => {
         margin: '0 auto'
     };
 
+    const authService = useService(AuthService);
+
+    const fallback = <h1 style={{'text-align': 'center', 'font-size': '5rem'}}>Logg dich nei!</h1>
+
+    const [token, { refetch }] = createResource(() => {
+        return authService().getToken();
+    });
+
+    const accessToken = () => {
+        return token();
+    };
+
     return (
         <>
             <Title value={params.user} />
             <div>
-                <Player
-                    style={css}
-                    url={`wss://${endpoint}/ws/${params.user}`}
-                    instance={params.user} autoplay={true}
-                    scroll={true}
-                    id="player"></Player>
+                <Show when={(!token.loading || typeof token() === 'string') && token() !== 'error'} fallback={fallback}>
+                    <Player
+                        style={css}
+                        url={`wss://${endpoint}/ws/${params.user}`}
+                        instance={params.user} autoplay={true}
+                        scroll={true}
+                        token={accessToken()}
+                        id="player"></Player>
+                </Show>
             </div>
         </>
     );

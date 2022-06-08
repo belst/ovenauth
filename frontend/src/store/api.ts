@@ -100,6 +100,10 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
             logout(): Promise<void> {
                 return client.post('/logout')('user');
             },
+
+            getToken(): Promise<String> {
+                return client.put('/generateToken')("token").catch(_ => "error")
+            }
         },
     }
 }

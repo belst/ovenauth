@@ -1,2 +1,4 @@
 node_modules
 dist
+docker/nginx/site
+docker_host/nginx/site

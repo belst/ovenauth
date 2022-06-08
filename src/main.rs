@@ -177,6 +177,8 @@ async fn main() -> anyhow::Result<()> {
             .service(user::me)
             .service(user::options)
             .service(user::reset)
+            .service(user::submitToken)
+            .service(user::generate_token)
     })
     .bind(format!("{}:{}", host, port))?
     .run()
