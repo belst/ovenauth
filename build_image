@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+sqlx migrate run
+cargo sqlx prepare
+docker build -t ovenauth .
+docker container stop ovenauth
+docker container rm ovenauth
+docker-compose -f docker/docker-compose.yml up -d ovenauth
