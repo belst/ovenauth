@@ -1,6 +1,6 @@
 import { Component, createEffect, createResource, createSignal, ErrorBoundary, onCleanup, onMount } from "solid-js";
 
-const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElement }> = (props) => {
+const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElement, token?: string, username?: string}> = (props) => {
     const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL;
 
     const fbpx = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
@@ -8,9 +8,9 @@ const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElemen
     const [intervalDuration, setIntervalDuration] = createSignal(props.interval ?? 10000);
 
     const fetcher = async (name: string) => {
-        const res = await fetch(`${endpoint}/thumbs/${name}/thumb.png?t=${Date.now()}`);
+        const res = await fetch(`${endpoint}/thumbs/${name}/thumb.png?t=${Date.now()}&username=${props.username}&token=${props.token}&streamname=${name}`);
         if (!res.ok) {
-            throw new Error(res.statusText);
+            //throw new Error(res.statusText);
         }
         return URL.createObjectURL(await res.blob());
     }

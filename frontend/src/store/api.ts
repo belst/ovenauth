@@ -1,4 +1,5 @@
-import { IStreamOption, IUser } from "../types/user.interface";
+import {IStreamOption, IUser, Recording, VodInfo} from "../types/user.interface";
+import stream from "../Stream";
 
 function httpClient(endpoint: string, request: typeof fetch) {
     // let auth = "";
@@ -7,9 +8,12 @@ function httpClient(endpoint: string, request: typeof fetch) {
         method: 'GET' | 'POST' | 'PUT' | 'DELETE',
         url: string,
         body?: any,
-        key?: string
+        key?: string,
+        username?: string,
+        token?: string
     ) {
-        // const authHeader = auth ? { authorization: `Token ${auth}` } : {};
+        const usrname = username ? { username: `${username}` } : {};
+        const tken = token ? { token: `${token}` } : {};
 
         const opts: RequestInit = {
             method,
@@ -18,7 +22,8 @@ function httpClient(endpoint: string, request: typeof fetch) {
             headers: {
                 'Content-Type': 'application/json',
                 credentials: 'same-origin',
-                // ...authHeader,
+                ...usrname,
+                ...tken
             },
         };
 
@@ -34,13 +39,15 @@ function httpClient(endpoint: string, request: typeof fetch) {
     }
 
     return {
-        get(url: string, params: Record<string, string | number> = {}) {
+        get(url: string, params: Record<string, string | number> = {}, username?: string, token?: string) {
             return (key = "") =>
                 makeRequest(
                     'GET',
                     `${url}?${new URLSearchParams(params as any)}`,
                     undefined,
-                    key
+                    key,
+                    username,
+                    token
                 );
         },
         delete(url: string, params: Record<string, string | number> = {}) {
@@ -52,8 +59,8 @@ function httpClient(endpoint: string, request: typeof fetch) {
                     key
                 );
         },
-        post(url: string, body: Record<string, unknown> = {}) {
-            return (key = "") => makeRequest('POST', url, body, key);
+        post(url: string, body: Record<string, unknown> = {}, username?: string, token?: string) {
+            return (key = "") => makeRequest('POST', url, body, key, username, token);
         },
         put(url: string, body: Record<string, unknown> = {}) {
             return (key = "") => makeRequest('PUT', url, body, key);
@@ -66,15 +73,25 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
 
     return {
         stats: {
-            viewerCount(user: string): Promise<number> {
-                return client.get('/viewers/' + user)('response').then(response => {
+            viewerCount(user: string, token: string, loggedInUser: string): Promise<number> {
+                const url = '/viewers/' + user + "?username=" + loggedInUser + "&token=" + token + "&streamname=" + user;
+                return client.get(url)('response').then(response => {
                     return response.totalConnections
-                }).catch(_ => -1);
+                }).catch(e => {
+                    if (e.toString() === "Error: Not Found") {
+                        return -404;
+                    } else {
+                        return -500;
+                    }
+                });
             }
         },
         common: {
             users(): Promise<IUser[]> {
                 return client.get('/users')('users');
+            },
+            allowedUsers(): Promise<IUser[]> {
+                return client.get('/allowedViewers')('users');
             },
             options(): Promise<IStreamOption> {
                 return client.get('/options')('options');
@@ -100,6 +117,22 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
             logout(): Promise<void> {
                 return client.post('/logout')('user');
             },
-        },
+            refreshToken(): Promise<string> {
+                return client.put('/generateToken')("token").catch(_ => "guest_token")
+            },
+            allowedViewers(): Promise<IUser[]> {
+                return client.get('/allowedViewers')('users').catch(_ => []);
+            },
+            setViewerPermission(user: string, allowed: boolean): Promise<void> {
+                return client.get(`/setViewerPermission?username=${user}&allowed=${allowed}`)("ok");
+            },
+            allowedToWatch(stream: string): Promise<boolean> {
+                return client.get(`/allowedToWatch?stream=${stream}`)("whitelisted");
+            },
+            setPublic(state: boolean): Promise<void> {
+                return client.get(`/setPublic?is_public=${state}`)("ok")
+            }
+
+        }
     }
 }
