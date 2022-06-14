@@ -3,17 +3,13 @@ import { Component, For } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
+import Thumbnail from "./Thumbnail";
 import Title from "./Title";
 import ViewCount from "./ViewCount";
 
 const Home: Component = () => {
     const authService = useService(AuthService);
-    const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL;
-
-    const fallbackimage = (el) => {
-        const pxtransparent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-        el.target.src = pxtransparent;
-    }
+    let t;
 
     return <>
         <Title value="Home" />
@@ -21,10 +17,8 @@ const Home: Component = () => {
             <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-4">
                 <For each={authService().users}>
                     {(user) =>
-                        <div class="aspect-video card shadow-xl card-bordered image-full">
-                            <figure class="aspect-video">
-                                <img class="bg-gradient-to-tl from-neutral-content to-neutral" src={`${endpoint}/thumbs/${user.username}/thumb.png`} onError={fallbackimage} />
-                            </figure>
+                        <div ref={t} class="aspect-video card shadow-xl card-bordered image-full">
+                            <Thumbnail hover={t} interval={10000} name={user.username}></Thumbnail>
                             <div class="justify-end card-body">
                                 <h2 class="card-title">{user.username}</h2>
                                 <ViewCount interval={10000} name={user.username}></ViewCount>
