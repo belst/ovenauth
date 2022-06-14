@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+cargo sqlx prepare
+docker build -t ovenauth .
+docker container stop ovenauth
+docker container rm ovenauth
+

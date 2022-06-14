@@ -1,0 +1,5 @@
+#!/bin/sh
+cd frontend
+npm run dockerbuild
+cd ..
+rsync -avz --delete frontend/dist/ ./docker/nginx/site

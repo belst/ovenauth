@@ -1,0 +1,4 @@
+#!/bin/bash
+mkdir -p ./docker/nginx/certs/
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./docker/nginx/certs/nginx-selfsigned.key -out ./docker/nginx/certs/nginx-selfsigned.crt
+openssl dhparam -out ./docker/nginx/certs/dhparam.pem 2048

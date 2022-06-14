@@ -54,7 +54,9 @@ const Login: Component = () => {
         <input type="submit" class="float-right btn btn-primary" value="Login" />
       </form>
       <Show when={errors()}>
-        {(errors) => <div>{JSON.stringify(errors)}</div>}
+        {(errors) => {
+          return <div>{errors.message}</div>;
+        }}
       </Show>
     </Layout>
   );

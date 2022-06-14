@@ -1,0 +1,163 @@
+<Server version="8">
+    <Name>OvenMediaEngine</Name>
+    <!-- Host type (origin/edge) -->
+    <Type>origin</Type>
+    <!-- Specify IP address to bind (* means all IPs) -->
+    <IP>*</IP>
+    <PrivacyProtection>false</PrivacyProtection>
+    <!--
+    To get the public IP address(mapped address of stun) of the local server.
+    This is useful when OME cannot obtain a public IP from an interface, such as AWS or docker environment.
+    If this is successful, you can use ${PublicIP} in your settings.
+    -->
+    <StunServer>stun.l.google.com:19302</StunServer>
+
+    <!-- Settings for the ports to bind -->
+    <Bind>
+        <!-- Enable this configuration if you want to use API Server -->
+
+        <Managers>
+            <API>
+                <Port>8081</Port>
+                <WorkerCount>1</WorkerCount>
+            </API>
+        </Managers>
+
+        <Providers>
+            <!-- Push providers -->
+            <RTMP>
+                <Port>${env:OME_RTMP_PROV_PORT:1935}</Port>
+                <WorkerCount>1</WorkerCount>
+            </RTMP>
+        </Providers>
+
+        <Publishers>
+
+            <Thumbnail>
+                <Port>20080</Port>
+            </Thumbnail>
+
+            <WebRTC>
+                <Signalling>
+                    <Port>${env:OME_SIGNALLING_PORT:3333}</Port>
+                    <WorkerCount>1</WorkerCount>
+                    <!-- If you want to use TLS, specify the TLS port -->
+                    <!-- <TLSPort>3334</TLSPort> -->
+                </Signalling>
+                <IceCandidates>
+                    <TcpRelay>${env:OME_TCP_RELAY_ADDRESS:*:3478}</TcpRelay>
+                    <TcpForce>true</TcpForce>
+                    <TcpRelayWorkerCount>1</TcpRelayWorkerCount>
+                    <IceCandidate>${env:OME_ICE_CANDIDATES:*:10006/udp}</IceCandidate>
+                </IceCandidates>
+            </WebRTC>
+        </Publishers>
+    </Bind>
+
+    <Managers>
+        <Host>
+            <Names>
+                <Name>*</Name>
+            </Names>
+        </Host>
+        <API>
+            <AccessToken>Meemqxd</AccessToken>
+        </API>
+    </Managers>
+
+    <VirtualHosts>
+        <!--
+                You can include multiple XML files by doing the following:
+                <VirtualHost include="sites-enabled/*.xml" />
+        -->
+        <VirtualHost include="VHost*.xml" />
+        <VirtualHost>
+            <Name>default</Name>
+            <!--Distribution is a value that can be used when grouping the same vhost distributed across multiple servers. This value is output to the events log, so you can use it to aggregate statistics. -->
+            <Distribution>ovenmediaengine.com</Distribution>
+
+            <AdmissionWebhooks>
+                <ControlServerUrl>http://ovenauth:8080/webhook</ControlServerUrl>
+                <SecretKey>1234</SecretKey>
+                <Timeout>3000</Timeout>
+                <Enables>
+                    <Providers>rtmp</Providers>
+                </Enables>
+            </AdmissionWebhooks>
+
+            <!-- Settings for multi ip/domain and TLS -->
+            <Host>
+                <Names>
+                    <!-- Host names
+                            <Name>stream1.airensoft.com</Name>
+                            <Name>stream2.airensoft.com</Name>
+                            <Name>*.sub.airensoft.com</Name>
+                            <Name>192.168.0.1</Name>
+                    -->
+                    <Name>*</Name>
+                </Names>
+                <!--
+                <TLS>
+                        <CertPath>path/to/file.crt</CertPath>
+                        <KeyPath>path/to/file.key</KeyPath>
+                        <ChainCertPath>path/to/file.crt</ChainCertPath>
+                </TLS>
+                -->
+            </Host>
+
+
+            <!-- Settings for applications -->
+            <Applications>
+                <Application>
+                    <Name>app</Name>
+                    <!-- Application type (live/vod) -->
+                    <Type>live</Type>
+                    <OutputProfiles>
+                        <OutputProfile>
+                            <Name>default_stream</Name>
+                            <OutputStreamName>${OriginStreamName}</OutputStreamName>
+                            <Encodes>
+                                <Audio>
+                                    <Bypass>true</Bypass>
+                                </Audio>
+                                <Video>
+                                    <Bypass>true</Bypass>
+                                </Video>
+                                <Audio>
+                                    <Codec>opus</Codec>
+                                    <Bitrate>128000</Bitrate>
+                                    <Samplerate>48000</Samplerate>
+                                    <Channel>2</Channel>
+                                </Audio>
+                                <Image>
+                                    <Codec>png</Codec>
+                                    <Framerate>1</Framerate>
+                                    <Width>1280</Width>
+                                    <Height>720</Height>
+                                </Image>
+                            </Encodes>
+                        </OutputProfile>
+                    </OutputProfiles>
+                    <Providers>
+                        <RTMP />
+                    </Providers>
+                    <Publishers>
+                        <AppWorkerCount>1</AppWorkerCount>
+                        <StreamWorkerCount>8</StreamWorkerCount>
+                        <WebRTC>
+                            <Timeout>30000</Timeout>
+                            <Rtx>false</Rtx>
+                            <Ulpfec>false</Ulpfec>
+                            <JitterBuffer>false</JitterBuffer>
+                        </WebRTC>
+                        <Thumbnail>
+                            <CrossDomains>
+                                <Url>*</Url>
+                            </CrossDomains>
+                        </Thumbnail>
+                    </Publishers>
+                </Application>
+            </Applications>
+        </VirtualHost>
+    </VirtualHosts>
+</Server>

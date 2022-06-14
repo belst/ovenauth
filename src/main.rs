@@ -107,6 +107,7 @@ impl Responder for Response {
 // TODO: verify X-OME-Signature
 #[post("/webhook")]
 async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> Response {
+
     if let Direction::Outgoing = body.request.direction {
         // TODO Implement correct redirects
         return Response::allowed();
@@ -140,7 +141,8 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> Response {
             return Response::denied(format!("{}", e));
         }
     };
-    url.set_path(&format!("app/{}", user.username));
+    url.set_path(&format!("app/{}", user.username.clone()));
+    send_message(&format!("Stream starting or ending: {}", user.username).to_string());
     Response::redirect(url.to_string())
 }
 
@@ -161,6 +163,7 @@ async fn main() -> anyhow::Result<()> {
     let secret: [u8; 32] = rand::thread_rng().gen();
 
     info!("Starting server on {}:{}", host, port);
+    send_message("oi m8, ye sörver is stoarding ubb m9");
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
@@ -177,10 +180,24 @@ async fn main() -> anyhow::Result<()> {
             .service(user::me)
             .service(user::options)
             .service(user::reset)
+            .service(user::submit_token)
+            .service(user::generate_token)
+            .service(user::get_allowed_viewers)
+            .service(user::set_viewer_permission)
+            .service(user::allowed_to_watch)
     })
     .bind(format!("{}:{}", host, port))?
     .run()
     .await?;
 
     Ok(())
+}
+
+fn send_message(message: &str) {
+    let token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
+    let chat_id: i64 = env::var("TELEGRAM_CHAT_ID")
+        .expect("Missing TELEGRAM_CHAT_ID environment variable")
+        .parse()
+        .expect("Error parsing TELEGRAM_CHAT_ID as i64");
+    telegram_notifyrs::send_message(message.to_string(), &token, chat_id);
 }

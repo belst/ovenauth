@@ -38,7 +38,7 @@ const Footer: Component = () => {
                 </select>
             </div>
             <div class="grid-flow-col gap-4 md:place-self-center md:justify-self-end">
-                <p>Flussen statt Zucken</p>
+                <p>{import.meta.env.VITE_PAGE_TITLE}</p>
             </div>
         </footer>
     );

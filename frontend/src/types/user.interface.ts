@@ -4,6 +4,11 @@ export interface IUser {
     hidden: boolean;
 }
 
+export interface UserPermission {
+    user: IUser,
+    permitted: boolean
+}
+
 export interface IStreamOption {
     token: string;
     user_id: number;

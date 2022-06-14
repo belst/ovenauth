@@ -66,8 +66,9 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
 
     return {
         stats: {
-            viewerCount(user: string): Promise<number> {
-                return client.get('/viewers/' + user)('response').then(response => {
+            viewerCount(user: string, token: string, loggedInUser: string): Promise<number> {
+                const url = '/viewers/' + user + "?username=" + loggedInUser + "&token=" + token + "&streamname=" + user;
+                return client.get(url)('response').then(response => {
                     return response.totalConnections
                 }).catch(_ => -1);
             }
@@ -75,6 +76,9 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
         common: {
             users(): Promise<IUser[]> {
                 return client.get('/users')('users');
+            },
+            allowedUsers(): Promise<IUser[]> {
+                return client.get('/allowedViewers')('users');
             },
             options(): Promise<IStreamOption> {
                 return client.get('/options')('options');
@@ -100,6 +104,19 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
             logout(): Promise<void> {
                 return client.post('/logout')('user');
             },
+            getToken(): Promise<String> {
+                return client.put('/generateToken')("token").catch(_ => "error")
+            },
+            allowedViewers(): Promise<IUser[]> {
+                return client.get('/allowedViewers')('users').catch(_ => []);
+            },
+            setViewerPermission(user: string, allowed: boolean): Promise<void> {
+                return client.get(`/setViewerPermission?username=${user}&allowed=${allowed}`)("ok");
+            },
+            allowedToWatch(stream: string): Promise<boolean> {
+                return client.get(`/allowedToWatch?stream=${stream}`)("whitelisted");
+            },
+
         },
     }
 }

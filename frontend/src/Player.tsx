@@ -1,4 +1,4 @@
-import { Component, createEffect, createSignal, JSX, onCleanup, onMount, splitProps } from "solid-js";
+import {Component, createEffect, createSignal, JSX, onCleanup, onMount, splitProps} from "solid-js";
 import OvenPlayer from 'ovenplayer';
 
 export interface PlayerProps {
@@ -6,6 +6,9 @@ export interface PlayerProps {
     autoplay: boolean,
     instance: string,
     scroll?: boolean,
+    token: string,
+    user: string,
+    name: string
 }
 
 // TODO: make this a directive instead of a component
@@ -26,6 +29,8 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
             }), 0);
         }
 
+        const url = playerProps.url + "?username=" + props.user + "&token=" + props.token + "&streamname=" + props.name;
+
         const player = OvenPlayer.create(ref.firstElementChild as HTMLDivElement, {
             volume: volume(),
             autoStart: playerProps.autoplay ?? false,
@@ -36,7 +41,7 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
             sources: [
                 {
                     type: 'webrtc',
-                    file: playerProps.url,
+                    file: url,
                 }
             ]
         });

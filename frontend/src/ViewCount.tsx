@@ -1,16 +1,19 @@
 import { Component, createResource, ErrorBoundary, onCleanup, onMount, Show } from "solid-js";
 import { useService } from "solid-services";
 import { StatService } from "./store/StatService";
+import {AuthService} from "./store/AuthService";
 
 interface ViewCountProps {
     name: string;
     interval?: number | boolean;
+    token: string;
+    user: string;
 }
 
 const ViewCount: Component<ViewCountProps> = (props) => {
     const statService = useService(StatService);
 
-    const fetcher = (name: string) => statService().getViewers(name);
+    const fetcher = (name: string) => statService().getViewers(name, props.token, props.user, props.name);
 
     const [vc, { refetch }] = createResource(() => props.name, fetcher);
 

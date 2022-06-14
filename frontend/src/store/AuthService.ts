@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { IUser } from '../types/user.interface';
+import {IUser, UserPermission} from '../types/user.interface';
 import { ovenAuthClient } from './api';
 
 export function AuthService() {
@@ -9,9 +9,18 @@ export function AuthService() {
   const client = ovenAuthClient(endpoint);
 
   client.auth.me().then(setUser).catch(() => setUser(null));
-  client.common.users().then(setUsers);
+  loadUsers();
+
+  function loadUsers() {
+    client.common.users().then(setUsers).catch(() => setUsers([]));
+  }
 
   return {
+
+    loadUsers() {
+      loadUsers();
+    },
+
     get user() {
       return getUser();
     },
@@ -44,5 +53,26 @@ export function AuthService() {
       setUser(user);
       return user;
     },
+
+    async getToken(): Promise<String> {
+      const token = await client.auth.getToken();
+      return token;
+    },
+
+    async allowedUsers(): Promise<Array<UserPermission>> {
+      const viewers = await client.auth.allowedViewers();
+      const all = await client.common.users();
+      return all.map(u => {
+        return { user: u, permitted: viewers.filter(us => us.id === u.id).length > 0 }
+      });
+    },
+
+    async setViewerPermission(user: string, allowed: boolean): Promise<void> {
+      return await client.auth.setViewerPermission(user, allowed);
+    },
+
+    async allowedToWatch(stream: string): Promise<boolean> {
+      return await client.auth.allowedToWatch(stream);
+    }
   }
 }
