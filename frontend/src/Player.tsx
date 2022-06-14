@@ -20,10 +20,14 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
         createEffect(() => localStorage.setItem(`volume_${playerProps.instance}`, volume().toString(10)));
 
         if (playerProps.scroll) {
-            setTimeout(() => ref.scrollIntoView({
+            const doscroll = () => setTimeout(() => ref.scrollIntoView({
                 behavior: 'smooth',
                 block: 'start',
             }), 0);
+            window.addEventListener('resize', doscroll);
+            doscroll();
+
+            onCleanup(() => window.removeEventListener('resize', doscroll));
         }
 
         const player = OvenPlayer.create(ref.firstElementChild as HTMLDivElement, {
