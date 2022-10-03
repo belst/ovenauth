@@ -5,6 +5,8 @@ import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
 import Title from "./Title";
 import ViewerAccess from "./components/vieweraccess";
+import Recordings from "./components/recordings";
+
 
 const Dashboard: Component = () => {
 
@@ -85,6 +87,12 @@ const Dashboard: Component = () => {
                 <Match when={searchParams.subpage === "access"}>
                   <ViewerAccess></ViewerAccess>
                 </Match>
+
+                <Match when={searchParams.subpage === "record"}>
+                  <Show when={authService().token}>
+                    <Recordings token={authService().token}></Recordings>
+                  </Show>
+                </Match>
               </Switch>
             </Show>
           </div>
@@ -99,6 +107,11 @@ const Dashboard: Component = () => {
               <li>
                 <a classList={{ active: searchParams.subpage === "access" }}  onclick={() => setEntry("access")}>
                   Access
+                </a>
+              </li>
+              <li>
+                <a classList={{ active: searchParams.subpage === "record" }}  onclick={() => setEntry("record")}>
+                  Record
                 </a>
               </li>
             </ul>

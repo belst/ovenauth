@@ -133,6 +133,40 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
                 return client.get(`/setPublic?is_public=${state}`)("ok")
             }
 
+        },
+
+        record: {
+
+            startRecord(streamname: string, token: string): Promise<void> {
+                const body = {
+                    "id": streamname,
+                    "stream": {
+                        "name": streamname,
+                    },
+                    "schedule" : "0 0 */1",
+                    "segmentationRule" : "continuity"
+                }
+                return client.post(`/startRecord`,  body, streamname, token )('');
+            },
+
+            stopRecord(streamname: string, token: string): Promise<void> {
+                const body = {
+                    "id": streamname
+                }
+                return client.post(`/stopRecord`,  body, streamname, token )('');
+            },
+
+            status(streamname: string, token: string): Promise<Recording[]> {
+                const body = {
+                    "id": streamname
+                }
+                return client.post(`/recordStatus`,  body, streamname, token )("response").catch(e => "");
+            },
+
+            getVods(streamname: string, token: string): Promise<VodInfo[]> {
+                return client.get(`/vods/${streamname}/`, {}, streamname, token)("").catch(e => []);
+            }
+
         }
     }
 }

@@ -12,6 +12,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::env;
+use actix_web::cookie::time::Duration;
 use url::Url;
 
 mod user;
@@ -140,7 +141,7 @@ async fn webhook(body: web::Json<Config>, db: web::Data<PgPool>) -> Response {
             return Response::denied(format!("{}", e));
         }
     };
-    url.set_path(&format!("app/{}", user.username));
+    url.set_path(&format!("app/{}", user.username.clone()));
     Response::redirect(url.to_string())
 }
 
@@ -182,6 +183,7 @@ async fn main() -> anyhow::Result<()> {
             .service(user::get_allowed_viewers)
             .service(user::set_viewer_permission)
             .service(user::allowed_to_watch)
+            .service(user::submit_header_token)
             .service(user::set_public)
     })
     .bind(format!("{}:{}", host, port))?
