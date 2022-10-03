@@ -8,6 +8,7 @@ services:
       - "./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
       - "./nginx/site:/data/www:ro"
       - "./nginx/certs:/etc/nginx/certs"
+      - "/tmp/vods/:/mnt/vods/"
     networks:
       - fluss
   ovenauth:
@@ -51,6 +52,7 @@ services:
       - fluss
     volumes:
       - "./ove/:/opt/ovenmediaengine/bin/origin_conf"
+      - "/tmp/vods/:/mnt/vods/"
     platform: "linux/amd64"
 networks:
   fluss:

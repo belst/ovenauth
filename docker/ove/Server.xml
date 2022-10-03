@@ -155,6 +155,11 @@
                                 <Url>*</Url>
                             </CrossDomains>
                         </Thumbnail>
+                        <FILE>
+                            <RootPath>/mnt/vods</RootPath>
+                            <FilePath>/${VirtualHost}/${Application}/${Stream}/${StartTime:YYYYMMDDhhmmss}.ts</FilePath>
+                            <InfoPath>/${VirtualHost}/${Application}/${Stream}.xml</InfoPath>
+                        </FILE>
                     </Publishers>
                 </Application>
             </Applications>
