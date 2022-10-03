@@ -166,7 +166,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(Logger::default())
             .wrap(Cors::permissive())
             .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&secret).name("auth").secure(true),
+                CookieIdentityPolicy::new(&secret).name("auth").secure(true).max_age(Duration::days(90)),
             ))
             .app_data(web::Data::new(db_pool.clone()))
             .service(webhook)
@@ -177,6 +177,12 @@ async fn main() -> anyhow::Result<()> {
             .service(user::me)
             .service(user::options)
             .service(user::reset)
+            .service(user::submit_token)
+            .service(user::generate_token)
+            .service(user::get_allowed_viewers)
+            .service(user::set_viewer_permission)
+            .service(user::allowed_to_watch)
+            .service(user::set_public)
     })
     .bind(format!("{}:{}", host, port))?
     .run()

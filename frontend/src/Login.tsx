@@ -14,7 +14,7 @@ const Login: Component = () => {
   const navigate = useNavigate();
 
   createMemo(() => {
-    if (authService().user) {
+    if (authService().loggedIn()) {
       navigate('/', { replace: true });
     }
   })

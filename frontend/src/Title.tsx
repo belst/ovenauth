@@ -1,9 +1,21 @@
-import { Component, createEffect } from "solid-js";
+import { Component, createEffect, onMount, createResource, onCleanup} from "solid-js";
 
-const Title: Component<{ value: string }> = (props) => {
-    createEffect(() => document.title = props.value ? `Fluss - ${props.value}` : 'Flussen statt Zucken');
+interface TitleProps {
+    interval?: number | boolean;
+    name: string;
+
+}
+
+const Title: Component<TitleProps> = (props) => {
+
+    const title = import.meta.env.VITE_PAGE_TITLE as string;
+
+    createEffect(() => {
+        document.title = title;
+    });
 
     return <></>;
 };
+
 
 export default Title;

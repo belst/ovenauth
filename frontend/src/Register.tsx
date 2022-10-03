@@ -15,7 +15,7 @@ const Register: Component = () => {
     const location = useLocation<{ redirectTo?: string }>();
 
     createMemo(() => {
-        if (authService().user) {
+        if (authService().user != null && authService().user.id != 0) {
             navigate('/', { replace: true });
         }
     });
