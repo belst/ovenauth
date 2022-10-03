@@ -1,2 +1,4 @@
 /target
 .env
+docker/nginx/certs/
+docker/ove/Server.id

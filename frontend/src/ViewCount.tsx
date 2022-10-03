@@ -5,18 +5,20 @@ import { StatService } from "./store/StatService";
 interface ViewCountProps {
     name: string;
     interval?: number | boolean;
+    token: string;
+    user: string;
 }
 
 const ViewCount: Component<ViewCountProps> = (props) => {
     const statService = useService(StatService);
 
-    const fetcher = (name: string) => statService().getViewers(name);
+    const fetcher = (name: string) => statService().getViewers(name, props.token, props.user, props.name);
 
     const [vc, { refetch }] = createResource(() => props.name, fetcher);
 
     const viewers = () => {
         let count = vc();
-        return count < 0 ? 'Offline' : count === 1 ? count + ' Viewer' : count + ' Viewers';
+        return count == -404 ? 'Offline' : count == -500 ? '?' : count === 1 ? count + ' Viewer' : count + ' Viewers';
     };
 
     onMount(() => {
