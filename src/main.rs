@@ -9,7 +9,7 @@ use chrono::Utc;
 use dotenvy::dotenv;
 use env_logger::Env;
 use log::{error, info};
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Serialize};
 use sqlx::PgPool;
 use std::env;
 use url::Url;
@@ -47,14 +47,48 @@ enum Direction {
     Outgoing,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Serialize)]
 enum Protocol {
     WebRTC,
     Rtmp,
     Srt,
     Llhls,
     Thumbnail,
+}
+
+impl<'de> Deserialize<'de> for Protocol {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct StrVisitor;
+
+        impl<'de> Visitor<'de> for StrVisitor {
+            type Value = Protocol;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(formatter, "a string")
+            }
+
+            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                use Protocol::*;
+                let p = match s.to_lowercase().as_str() {
+                    "webrtc" => WebRTC,
+                    "rtmp" => Rtmp,
+                    "srt" => Srt,
+                    "llhls" => Llhls,
+                    "thumbnail" => Thumbnail,
+                    _ => return Err(E::custom("Unknown protocol")),
+                };
+                Ok(p)
+            }
+        }
+
+        deserializer.deserialize_str(StrVisitor)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
