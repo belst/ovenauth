@@ -14,12 +14,14 @@ const Navbar: Component = () => {
 
     const [navbarOpen, setNavbarOpen] = createSignal(false);
 
+    const navigate = useNavigate();
+
     return (
         <nav class="flex items-center justify-between flex-wrap  bg-neutral text-neutral-content p-6">
-            <div class="flex-none px-2 mx-2" onclick={ () => navigate("/", { replace: true })}
-                 onTouchEnd={ () => navigate("/", { replace: true }) } >
+            <div class="flex-none px-2 mx-2" onclick={() => navigate("/", { replace: true })}
+                onTouchEnd={() => navigate("/", { replace: true })} >
                 <span class="text-lg font-bold">
-                {import.meta.env.VITE_PAGE_TITLE}
+                    {import.meta.env.VITE_PAGE_TITLE}
                 </span>
             </div>
             <div class="flex-1 px-2 mx-2">
@@ -30,12 +32,12 @@ const Navbar: Component = () => {
                 </div>
             </div>
             <div class="block lg:hidden">
-                <button data-collapse-toggle="mobile-menu-4" class="flex items-center px-3 py-2 border rounded text-default-200 border-white-400 hover:text-white hover:border-white"  onclick={ () => { setNavbarOpen(!navbarOpen());}}>
-                    <svg class="fill-current h-3 w-3" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>Menu</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/></svg>
+                <button data-collapse-toggle="mobile-menu-4" class="flex items-center px-3 py-2 border rounded text-default-200 border-white-400 hover:text-white hover:border-white" onclick={() => { setNavbarOpen(!navbarOpen()); }}>
+                    <svg class="fill-current h-3 w-3" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>Menu</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z" /></svg>
                 </button>
             </div>
 
-            <div class="w-full block lg:flex lg:items-end lg:w-auto" className={(navbarOpen() ? " flex" : " hidden")}>
+            <div class="w-full block lg:flex lg:items-end lg:w-auto" classList={{ flex: navbarOpen(), hidden: !navbarOpen() }}>
                 <div class="text-sm lg:flex-grow">
                     <Switch>
                         <Match when={authService().user}>
@@ -57,9 +59,9 @@ const Navbar: Component = () => {
                                 </NavLink>
                             </div>
                             <div class="block mt-4 lg:inline-block lg:mt-0 text-default-200 hover:text-white mr-4">
-                                    <NavLink activeClass="btn-active" href="/register" class="btn btn-ghost btn-sm rounded-btn">
-                                        Register
-                                    </NavLink>
+                                <NavLink activeClass="btn-active" href="/register" class="btn btn-ghost btn-sm rounded-btn">
+                                    Register
+                                </NavLink>
                             </div>
                         </Match>
                     </Switch>
