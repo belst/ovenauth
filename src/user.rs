@@ -1,7 +1,7 @@
 use std::env;
 
 use actix_identity::Identity;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use anyhow::{bail, Result};
 use log::error;
 use rand::Rng;
@@ -155,7 +155,7 @@ impl User {
 
 #[post("/register")]
 pub async fn register(
-    id: Identity,
+    req: HttpRequest,
     db: web::Data<PgPool>,
     creds: web::Json<UserWrapper<RegisterCreds>>,
 ) -> impl Responder {
@@ -172,7 +172,7 @@ pub async fn register(
     }
     match User::create_from_creds(&creds, &db).await {
         Ok(user) => {
-            id.remember(user.id.to_string());
+            Identity::login(&req.extensions(), user.id.to_string()).unwrap();
             HttpResponse::Ok().json(json!({ "user": user }))
         }
         Err(e) => {
@@ -184,23 +184,19 @@ pub async fn register(
 
 #[post("/logout")]
 pub async fn logout(id: Identity) -> impl Responder {
-    id.forget();
+    id.logout();
 
     HttpResponse::Ok().json(json!({}))
 }
 
 #[post("/login")]
 async fn login(
-    id: Identity,
+    req: HttpRequest,
     creds: web::Json<UserWrapper<LoginCredentials>>,
     db: web::Data<PgPool>,
 ) -> impl Responder {
-    // if id.identity().is_some() {
-    //     return HttpResponse::Ok().json("Already logged in");
-    // }
-
     if let Ok(user) = User::from_creds(&creds.user, &db).await {
-        id.remember(user.id.to_string());
+        Identity::login(&req.extensions(), user.id.to_string()).unwrap();
         HttpResponse::Ok().json(json!({ "user": user }))
     } else {
         HttpResponse::Unauthorized().json("Invalid username or password")
@@ -220,10 +216,7 @@ pub async fn index(db: web::Data<PgPool>) -> impl Responder {
 
 #[get("/user")]
 pub async fn me(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    let id = match id.identity() {
-        Some(id) => id.parse::<i32>().unwrap(),
-        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
-    };
+    let id = id.id().unwrap().parse::<i32>().unwrap();
 
     match User::from_id(id, &db).await {
         Ok(user) => HttpResponse::Ok().json(json!({ "user": user })),
@@ -236,10 +229,7 @@ pub async fn me(id: Identity, db: web::Data<PgPool>) -> impl Responder {
 
 #[get("/options")]
 pub async fn options(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    let id = match id.identity() {
-        Some(id) => id.parse::<i32>().unwrap(),
-        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
-    };
+    let id = id.id().unwrap().parse::<i32>().unwrap();
 
     match StreamOption::from_user_id(id, &db).await {
         Ok(options) => HttpResponse::Ok().json(json!({ "options": options })),
@@ -252,10 +242,7 @@ pub async fn options(id: Identity, db: web::Data<PgPool>) -> impl Responder {
 
 #[post("/reset")]
 pub async fn reset(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    let id = match id.identity() {
-        Some(id) => id.parse::<i32>().unwrap(),
-        None => return HttpResponse::Unauthorized().json(json!({ "errors": ["Not logged in"] })),
-    };
+    let id = id.id().unwrap().parse::<i32>().unwrap();
 
     let q = sqlx::query!(
         "

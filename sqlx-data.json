@@ -1,268 +1,268 @@
 {
   "db": "PostgreSQL",
   "084dd8530ff743db8df29b4d8715f37b8ffb9a31ed1c3b4611913d2ed808a88d": {
-    "query": "select * from users where hidden = false",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": "Int4"
         },
         {
-          "ordinal": 1,
           "name": "username",
+          "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "ordinal": 2,
           "name": "password",
+          "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "ordinal": 3,
           "name": "hidden",
+          "ordinal": 3,
           "type_info": "Bool"
         }
       ],
-      "parameters": {
-        "Left": []
-      },
       "nullable": [
         false,
         false,
         false,
         false
-      ]
-    }
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select * from users where hidden = false"
   },
   "16edda85ef35e4116c9896a763d77e687dff418f64c925027b351d4c3fd06d06": {
-    "query": "\n        insert into options\n            (name, user_id, token)\n        values\n            ('Stream Token', $1, MD5(random()::text))\n        on conflict (user_id) do update\n        set token = MD5(random()::text)",
     "describe": {
       "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Int4"
         ]
-      },
-      "nullable": []
-    }
+      }
+    },
+    "query": "\n        insert into options\n            (name, user_id, token)\n        values\n            ('Stream Token', $1, MD5(random()::text))\n        on conflict (user_id) do update\n        set token = MD5(random()::text)"
   },
   "7844578e2d91e8bb73201dfe8804f4d4537472aa79366aa3a94271c9397e16e6": {
-    "query": "insert into users (username, password) values ($1, $2) returning id, username, password, hidden",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": "Int4"
         },
         {
-          "ordinal": 1,
           "name": "username",
+          "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "ordinal": 2,
           "name": "password",
+          "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "ordinal": 3,
           "name": "hidden",
+          "ordinal": 3,
           "type_info": "Bool"
         }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
       ],
       "parameters": {
         "Left": [
           "Text",
           "Text"
         ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ]
-    }
+      }
+    },
+    "query": "insert into users (username, password) values ($1, $2) returning id, username, password, hidden"
   },
   "7a661a0e91a31bd1e4e71e73ffa7b79c28bfaea006bac57f1ba1b2942c4bb7cf": {
-    "query": "select id, username, password, hidden from users where username = $1",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "id",
+          "ordinal": 0,
           "type_info": "Int4"
         },
         {
-          "ordinal": 1,
           "name": "username",
+          "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "ordinal": 2,
           "name": "password",
+          "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "ordinal": 3,
           "name": "hidden",
+          "ordinal": 3,
           "type_info": "Bool"
         }
       ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
       "nullable": [
         false,
         false,
         false,
         false
-      ]
-    }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "select id, username, password, hidden from users where username = $1"
   },
   "7e5bd5781f7618f3e9423c44729d2b452e9372db15e0e22f348b71d157465dd8": {
-    "query": "select token, user_id, name from options where user_id = $1",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "token",
+          "ordinal": 0,
           "type_info": "Text"
         },
         {
-          "ordinal": 1,
           "name": "user_id",
+          "ordinal": 1,
           "type_info": "Int4"
         },
         {
-          "ordinal": 2,
           "name": "name",
+          "ordinal": 2,
           "type_info": "Text"
         }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
       ],
       "parameters": {
         "Left": [
           "Int4"
         ]
-      },
-      "nullable": [
-        false,
-        false,
-        false
-      ]
-    }
+      }
+    },
+    "query": "select token, user_id, name from options where user_id = $1"
   },
   "9545a4087790343207d689a5fecb45a794dff481ad0f69681117460ebd1704a6": {
-    "query": "select o.token, o.user_id, o.name from options o where o.user_id = $1",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "token",
+          "ordinal": 0,
           "type_info": "Text"
         },
         {
-          "ordinal": 1,
           "name": "user_id",
+          "ordinal": 1,
           "type_info": "Int4"
         },
         {
-          "ordinal": 2,
           "name": "name",
+          "ordinal": 2,
           "type_info": "Text"
         }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
       ],
       "parameters": {
         "Left": [
           "Int4"
         ]
-      },
-      "nullable": [
-        false,
-        false,
-        false
-      ]
-    }
+      }
+    },
+    "query": "select o.token, o.user_id, o.name from options o where o.user_id = $1"
   },
   "d310baba88f4a1d2c5cd2606400820f43b075c59b82dbd8bae67048705c4ecb4": {
-    "query": "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
     "describe": {
       "columns": [
         {
-          "ordinal": 0,
           "name": "username",
+          "ordinal": 0,
           "type_info": "Text"
         },
         {
-          "ordinal": 1,
           "name": "id",
+          "ordinal": 1,
           "type_info": "Int4"
         },
         {
-          "ordinal": 2,
           "name": "password",
+          "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "ordinal": 3,
           "name": "hidden",
+          "ordinal": 3,
           "type_info": "Bool"
         }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
       ],
       "parameters": {
         "Left": [
           "Text"
         ]
-      },
+      }
+    },
+    "query": "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1"
+  },
+  "f1d39d04786fdc99c9d5914d2aaa4fa2ab5aa0e593294d28ed3863a665a1bf48": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "password",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "hidden",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
       "nullable": [
         false,
         false,
         false,
         false
-      ]
-    }
-  },
-  "f1d39d04786fdc99c9d5914d2aaa4fa2ab5aa0e593294d28ed3863a665a1bf48": {
-    "query": "select id, username, password, hidden from users where id = $1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 1,
-          "name": "username",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "password",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "hidden",
-          "type_info": "Bool"
-        }
       ],
       "parameters": {
         "Left": [
           "Int4"
         ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ]
-    }
+      }
+    },
+    "query": "select id, username, password, hidden from users where id = $1"
   }
 }
