@@ -1,14 +1,14 @@
 use actix_cors::Cors;
-use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_identity::IdentityMiddleware;
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{
-    body::BoxBody, middleware::Logger, post, web, App, HttpRequest, HttpResponse, HttpServer,
-    Responder,
+    body::BoxBody, cookie::Key, middleware::Logger, post, web, App, HttpRequest, HttpResponse,
+    HttpServer, Responder,
 };
 use chrono::Utc;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use env_logger::Env;
 use log::{error, info};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::env;
@@ -28,6 +28,7 @@ struct Config {
 struct Client {
     address: String,
     port: u16,
+    user_agent: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -36,6 +37,7 @@ struct Request {
     protocol: Protocol,
     url: String,
     time: chrono::DateTime<Utc>,
+    new_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,19 +48,13 @@ enum Direction {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 enum Protocol {
-    #[serde(rename = "WebRTC")]
     WebRTC,
-    #[serde(rename = "RTMP")]
     Rtmp,
-    #[serde(rename = "SRT")]
     Srt,
-    #[serde(rename = "HLS")]
-    Hls,
-    #[serde(rename = "DASH")]
-    Dash,
-    #[serde(rename = "LLDASH")]
-    LLDash,
+    Llhls,
+    Thumbnail,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -158,16 +154,20 @@ async fn main() -> anyhow::Result<()> {
 
     sqlx::migrate!("./migrations").run(&db_pool).await?;
 
-    let secret: [u8; 32] = rand::thread_rng().gen();
+    let secret = Key::generate();
 
     info!("Starting server on {}:{}", host, port);
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .wrap(Cors::permissive())
-            .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&secret).name("auth").secure(true),
-            ))
+            .wrap(IdentityMiddleware::default())
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), secret.clone())
+                    .cookie_content_security(actix_session::config::CookieContentSecurity::Private)
+                    .cookie_name("auth".to_string())
+                    .build(),
+            )
             .app_data(web::Data::new(db_pool.clone()))
             .service(webhook)
             .service(user::login)
