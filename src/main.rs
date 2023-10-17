@@ -7,7 +7,7 @@ use dotenvy::dotenv;
 use rand::Rng;
 use sqlx::PgPool;
 use std::{env, net::IpAddr};
-use tower_http::trace::TraceLayer;
+use tower_http::{trace::TraceLayer, cors::CorsLayer, services::{ServeDir, ServeFile}};
 use tracing_subscriber::prelude::*;
 use user::User;
 
@@ -56,14 +56,17 @@ async fn main() -> anyhow::Result<()> {
     let session_store = MemoryStore::new();
     let session_layer = SessionLayer::new(session_store, &secret).with_secure(false);
     let auth_layer = AuthLayer::new(user_store, &secret);
+    let cors = CorsLayer::very_permissive();
 
     tracing::info!("Starting server on {}:{}", host, port);
     let app: Router = Router::new()
         .merge(webhook::routes().with_state(db_pool.clone()))
         .nest("/user", user::routes().with_state(db_pool.clone()))
         .nest("/ws", chat::routes())
+        .fallback_service(ServeDir::new(".").not_found_service(ServeFile::new("index.html")))
         .layer(auth_layer)
         .layer(session_layer)
+        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(db_pool);
 

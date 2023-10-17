@@ -5,7 +5,7 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
 use axum::response::Response;
 use axum::routing::get;
-use axum::Router;
+use axum::{Router, Extension};
 use chrono::Utc;
 use futures_util::future::join_all;
 use futures_util::stream::SplitSink;
@@ -15,6 +15,7 @@ use tokio::sync::{Mutex, RwLock};
 use ulid::Ulid;
 
 use crate::error::OvenauthError;
+use crate::user::User;
 
 #[derive(Debug, Default)]
 struct Room {
@@ -33,14 +34,12 @@ struct OutgoingMessage {
 #[derive(Debug, Clone, Deserialize)]
 struct IncomingMessage {
     content: String,
-    author_id: i32,
-    author: String,
     reply_to: Option<Ulid>,
 }
 
 type ChatState = Arc<RwLock<HashMap<String, Room>>>;
 
-async fn handle_socket(socket: WebSocket, room: String, state: ChatState) {
+async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: User) {
     let (sender, mut receiver) = socket.split();
     let room = {
         let mut rooms = state.write().await;
@@ -62,7 +61,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState) {
             let outgoing = OutgoingMessage {
                 message_id: Ulid::new(),
                 content: msg.content,
-                author: msg.author,
+                author: user.username.clone(),
                 timestamp: Utc::now(),
                 reply_to: msg.reply_to,
             };
@@ -82,8 +81,9 @@ async fn handler(
     ws: WebSocketUpgrade,
     Path(room): Path<String>,
     State(state): State<ChatState>,
+    Extension(user): Extension<User>,
 ) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, room, state))
+    ws.on_upgrade(|socket| handle_socket(socket, room, state, user))
 }
 
 pub fn routes<S>() -> Router<S> {
