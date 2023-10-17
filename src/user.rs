@@ -1,13 +1,20 @@
 use std::env;
 
-use actix_identity::Identity;
-use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use anyhow::{bail, Result};
-use log::error;
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Extension, Json, Router,
+};
+use axum_login::{secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, PgPool};
+
+use crate::error::OvenauthError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserWrapper<T: std::fmt::Debug + Serialize> {
@@ -28,7 +35,7 @@ pub struct RegisterCreds {
     secret_code: String,
 }
 
-#[derive(FromRow, Debug, Serialize)]
+#[derive(FromRow, Debug, Default, Clone, Serialize)]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -45,18 +52,6 @@ pub struct StreamOption {
 }
 
 impl StreamOption {
-    pub async fn get_user_from_token(token: &str, pool: &PgPool) -> Result<User> {
-        let user = sqlx::query_as!(
-            User,
-            "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
-            token
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(user)
-    }
-
     pub async fn from_user_id(user_id: i32, pool: &PgPool) -> Result<Option<Self>> {
         let ooptions = sqlx::query_as!(
             Self,
@@ -71,6 +66,17 @@ impl StreamOption {
 }
 
 impl User {
+    pub async fn from_token(token: &str, pool: &PgPool) -> Result<User> {
+        let user = sqlx::query_as!(
+            User,
+            "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
+            token
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(user)
+    }
     pub async fn from_id(id: i32, db: &PgPool) -> Result<User> {
         let user = sqlx::query_as!(
             User,
@@ -151,99 +157,88 @@ impl User {
     }
 }
 
-// ROUTES
+impl AuthUser<i32> for User {
+    fn get_id(&self) -> i32 {
+        self.id
+    }
 
-#[post("/register")]
-pub async fn register(
-    req: HttpRequest,
-    db: web::Data<PgPool>,
-    creds: web::Json<UserWrapper<RegisterCreds>>,
-) -> impl Responder {
-    let creds = creds.into_inner().user;
+    fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
+        SecretVec::new(self.password.clone().into())
+    }
+}
+
+// ROUTES
+pub type AuthContext = axum_login::extractors::AuthContext<i32, User, PostgresStore<User>>;
+
+async fn register(
+    mut auth: AuthContext,
+    State(db): State<PgPool>,
+    Json(creds): Json<RegisterCreds>,
+) -> Result<Response, OvenauthError> {
     let secret = match env::var("SECRET_CODE") {
         Ok(secret) => secret,
         Err(e) => {
-            error!("{}", e);
-            return HttpResponse::InternalServerError().finish();
+            tracing::error!("{}", e);
+            return Ok((StatusCode::INTERNAL_SERVER_ERROR, "").into_response());
         }
     };
     if creds.secret_code != secret {
-        return HttpResponse::Unauthorized().json("Invalid secret code");
+        // TODO: make it json type
+        return Ok((StatusCode::UNAUTHORIZED, "Invalid secret code").into_response());
     }
     match User::create_from_creds(&creds, &db).await {
         Ok(user) => {
-            Identity::login(&req.extensions(), user.id.to_string()).unwrap();
-            HttpResponse::Ok().json(json!({ "user": user }))
+            auth.login(&user).await?;
+            Ok(Json(json!({ "user": user })).into_response())
         }
         Err(e) => {
-            error!("{}", e);
-            HttpResponse::InternalServerError().finish()
+            tracing::error!("{}", e);
+            Ok((StatusCode::INTERNAL_SERVER_ERROR, "").into_response())
         }
     }
 }
 
-#[post("/logout")]
-pub async fn logout(id: Identity) -> impl Responder {
-    id.logout();
-
-    HttpResponse::Ok().json(json!({}))
+pub async fn logout(mut auth: AuthContext) -> impl IntoResponse {
+    auth.logout().await;
 }
-
-#[post("/login")]
 async fn login(
-    req: HttpRequest,
-    creds: web::Json<UserWrapper<LoginCredentials>>,
-    db: web::Data<PgPool>,
-) -> impl Responder {
-    if let Ok(user) = User::from_creds(&creds.user, &db).await {
-        Identity::login(&req.extensions(), user.id.to_string()).unwrap();
-        HttpResponse::Ok().json(json!({ "user": user }))
+    mut auth: AuthContext,
+    State(db): State<PgPool>,
+    Json(creds): Json<LoginCredentials>,
+) -> Result<Response, OvenauthError> {
+    if let Ok(user) = User::from_creds(&creds, &db).await {
+        auth.login(&user).await?;
+        Ok(Json(json!({ "user": user })).into_response())
     } else {
-        HttpResponse::Unauthorized().json("Invalid username or password")
+        Ok((StatusCode::UNAUTHORIZED, "Invalid username or password").into_response())
     }
 }
 
-#[get("/users")]
-pub async fn index(db: web::Data<PgPool>) -> impl Responder {
+async fn index(State(db): State<PgPool>) -> impl IntoResponse {
     match User::all(&db).await {
-        Ok(users) => HttpResponse::Ok().json(json!({ "users": users })),
+        Ok(users) => Json(json!({ "users": users })).into_response(),
         Err(e) => {
-            error!("{}", e);
-            HttpResponse::InternalServerError().finish()
+            tracing::error!("{}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "").into_response()
         }
     }
 }
 
-#[get("/user")]
-pub async fn me(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    let id = id.id().unwrap().parse::<i32>().unwrap();
+async fn me(Extension(user): Extension<User>) -> impl IntoResponse {
+    Json(json!({ "user": user }))
+}
 
-    match User::from_id(id, &db).await {
-        Ok(user) => HttpResponse::Ok().json(json!({ "user": user })),
+async fn options(Extension(user): Extension<User>, State(db): State<PgPool>) -> impl IntoResponse {
+    match StreamOption::from_user_id(user.id, &db).await {
+        Ok(options) => Json(json!({ "options": options })).into_response(),
         Err(e) => {
-            error!("{}", e);
-            HttpResponse::InternalServerError().finish()
+            tracing::error!("{}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "").into_response()
         }
     }
 }
 
-#[get("/options")]
-pub async fn options(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    let id = id.id().unwrap().parse::<i32>().unwrap();
-
-    match StreamOption::from_user_id(id, &db).await {
-        Ok(options) => HttpResponse::Ok().json(json!({ "options": options })),
-        Err(e) => {
-            error!("{}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
-}
-
-#[post("/reset")]
-pub async fn reset(id: Identity, db: web::Data<PgPool>) -> impl Responder {
-    let id = id.id().unwrap().parse::<i32>().unwrap();
-
+async fn reset(Extension(user): Extension<User>, State(db): State<PgPool>) -> impl IntoResponse {
     let q = sqlx::query!(
         "
         insert into options
@@ -252,14 +247,27 @@ pub async fn reset(id: Identity, db: web::Data<PgPool>) -> impl Responder {
             ('Stream Token', $1, MD5(random()::text))
         on conflict (user_id) do update
         set token = MD5(random()::text)",
-        id
+        user.id
     );
 
-    match q.execute(&**db).await {
-        Ok(_) => HttpResponse::Ok().json(json!({})),
+    match q.execute(&db).await {
+        Ok(_) => Json(()).into_response(),
         Err(e) => {
-            error!("{}", e);
-            return HttpResponse::InternalServerError().finish();
+            tracing::error!("{}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "").into_response()
         }
     }
 }
+
+pub fn routes() -> Router<PgPool> {
+    Router::new()
+        .route("/reset", post(reset))
+        .route("/options", get(options))
+        .route("/me", get(me))
+        .route("/logout", post(logout))
+        .route_layer(RequireAuthorizationLayer::<i32, User>::login())
+        .route("/users", get(index))
+        .route("/login", post(login))
+        .route("/register", post(register))
+}
+

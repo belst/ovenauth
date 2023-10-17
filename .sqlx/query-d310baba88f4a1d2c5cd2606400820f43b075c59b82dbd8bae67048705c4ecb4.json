@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "password",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "hidden",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d310baba88f4a1d2c5cd2606400820f43b075c59b82dbd8bae67048705c4ecb4"
+}

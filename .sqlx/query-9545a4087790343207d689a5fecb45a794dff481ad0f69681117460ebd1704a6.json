@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select o.token, o.user_id, o.name from options o where o.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9545a4087790343207d689a5fecb45a794dff481ad0f69681117460ebd1704a6"
+}
