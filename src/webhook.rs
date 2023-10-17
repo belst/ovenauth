@@ -62,13 +62,13 @@ impl<'de> Deserialize<'de> for Protocol {
             where
                 E: serde::de::Error,
             {
-                use Protocol::*;
+                use Protocol as P;
                 let p = match s.to_lowercase().as_str() {
-                    "webrtc" => WebRTC,
-                    "rtmp" => Rtmp,
-                    "srt" => Srt,
-                    "llhls" => Llhls,
-                    "thumbnail" => Thumbnail,
+                    "webrtc" => P::WebRTC,
+                    "rtmp" => P::Rtmp,
+                    "srt" => P::Srt,
+                    "llhls" => P::Llhls,
+                    "thumbnail" => P::Thumbnail,
                     _ => return Err(E::custom("Unknown protocol")),
                 };
                 Ok(p)
@@ -130,12 +130,12 @@ async fn webhook(State(db): State<PgPool>, Json(body): Json<Config>) -> WebhookR
     let mut url = match Url::parse(&body.request.url) {
         Ok(url) => url,
         Err(e) => {
-            tracing::error!("{}", e);
-            return WebhookResponse::denied(format!("{}", e));
+            tracing::error!("{e}");
+            return WebhookResponse::denied(format!("{e}"));
         }
     };
 
-    let creds: Option<Vec<&str>> = url.path_segments().map(|s| s.collect());
+    let creds: Option<Vec<&str>> = url.path_segments().map(Iterator::collect);
 
     if creds.is_none() {
         return WebhookResponse::denied("Invalid URL".to_string());
@@ -152,8 +152,8 @@ async fn webhook(State(db): State<PgPool>, Json(body): Json<Config>) -> WebhookR
     let user = match User::from_token(token, &db).await {
         Ok(user) => user,
         Err(e) => {
-            tracing::error!("{}", e);
-            return WebhookResponse::denied(format!("{}", e));
+            tracing::error!("{e}");
+            return WebhookResponse::denied(format!("{e}"));
         }
     };
     url.set_path(&format!("app/{}", user.username));

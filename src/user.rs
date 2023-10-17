@@ -77,29 +77,6 @@ impl User {
 
         Ok(user)
     }
-    pub async fn from_id(id: i32, db: &PgPool) -> Result<User> {
-        let user = sqlx::query_as!(
-            User,
-            "select id, username, password, hidden from users where id = $1",
-            id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(user)
-    }
-
-    pub async fn from_username(username: &str, db: &PgPool) -> Result<User> {
-        let user = sqlx::query_as!(
-            User,
-            "select id, username, password, hidden from users where username = $1",
-            username
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(user)
-    }
 
     pub async fn from_creds(creds: &LoginCredentials, db: &PgPool) -> Result<User> {
         let user = sqlx::query_as!(
@@ -134,18 +111,6 @@ impl User {
         .await?;
 
         Ok(user)
-    }
-
-    pub async fn get_tokens(&self, db: &PgPool) -> Result<StreamOption> {
-        let tokens = sqlx::query_as!(
-            StreamOption,
-            "select token, user_id, name from options where user_id = $1",
-            self.id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(tokens)
     }
 
     pub async fn all(db: &PgPool) -> Result<Vec<User>> {
@@ -270,4 +235,3 @@ pub fn routes() -> Router<PgPool> {
         .route("/login", post(login))
         .route("/register", post(register))
 }
-
