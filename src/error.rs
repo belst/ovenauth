@@ -6,6 +6,8 @@ pub enum OvenauthError {
     #[error(transparent)]
     Json(#[from] serde_json::Error),
     #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 

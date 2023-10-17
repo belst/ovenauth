@@ -11,6 +11,7 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
 use user::User;
 
+mod chat;
 mod error;
 mod user;
 mod webhook;
@@ -60,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
     let app: Router = Router::new()
         .merge(webhook::routes().with_state(db_pool.clone()))
         .nest("/user", user::routes().with_state(db_pool.clone()))
+        .nest("/ws", chat::routes())
         .layer(auth_layer)
         .layer(session_layer)
         .layer(TraceLayer::new_for_http())

@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -35,6 +35,7 @@ pub struct RegisterCreds {
     secret_code: String,
 }
 
+// TODO: seperate User from Streams
 #[derive(FromRow, Debug, Default, Clone, Serialize)]
 pub struct User {
     pub id: i32,
@@ -49,13 +50,14 @@ pub struct StreamOption {
     pub token: String,
     pub user_id: i32,
     pub name: String,
+    pub public: bool,
 }
 
 impl StreamOption {
     pub async fn from_user_id(user_id: i32, pool: &PgPool) -> Result<Option<Self>> {
         let ooptions = sqlx::query_as!(
             Self,
-            "select o.token, o.user_id, o.name from options o where o.user_id = $1",
+            "select o.token, o.user_id, o.name, o.public from options o where o.user_id = $1",
             user_id
         )
         .fetch_optional(pool)
@@ -113,10 +115,18 @@ impl User {
         Ok(user)
     }
 
-    pub async fn all(db: &PgPool) -> Result<Vec<User>> {
-        let users = sqlx::query_as!(User, "select * from users where hidden = false")
-            .fetch_all(db)
-            .await?;
+    pub async fn all(db: &PgPool, show_all: bool) -> Result<Vec<User>> {
+        let users = sqlx::query_as!(
+            User,
+            r#"
+                select * from users
+                where hidden = false
+                and ($1 or id in (select id from options where public))
+                "#,
+            show_all
+        )
+        .fetch_all(db)
+        .await?;
 
         Ok(users)
     }
@@ -140,27 +150,14 @@ async fn register(
     State(db): State<PgPool>,
     Json(creds): Json<RegisterCreds>,
 ) -> Result<Response, OvenauthError> {
-    let secret = match env::var("SECRET_CODE") {
-        Ok(secret) => secret,
-        Err(e) => {
-            tracing::error!("{}", e);
-            return Ok((StatusCode::INTERNAL_SERVER_ERROR, "").into_response());
-        }
-    };
+    let secret = env::var("SECRET_CODE").context("SECRET_CODE missing")?;
     if creds.secret_code != secret {
         // TODO: make it json type
         return Ok((StatusCode::UNAUTHORIZED, "Invalid secret code").into_response());
     }
-    match User::create_from_creds(&creds, &db).await {
-        Ok(user) => {
-            auth.login(&user).await?;
-            Ok(Json(json!({ "user": user })).into_response())
-        }
-        Err(e) => {
-            tracing::error!("{}", e);
-            Ok((StatusCode::INTERNAL_SERVER_ERROR, "").into_response())
-        }
-    }
+    let user = User::create_from_creds(&creds, &db).await?;
+    auth.login(&user).await?;
+    Ok(Json(json!({ "user": user })).into_response())
 }
 
 pub async fn logout(mut auth: AuthContext) -> impl IntoResponse {
@@ -170,40 +167,36 @@ async fn login(
     mut auth: AuthContext,
     State(db): State<PgPool>,
     Json(creds): Json<LoginCredentials>,
-) -> Result<Response, OvenauthError> {
-    if let Ok(user) = User::from_creds(&creds, &db).await {
-        auth.login(&user).await?;
-        Ok(Json(json!({ "user": user })).into_response())
-    } else {
-        Ok((StatusCode::UNAUTHORIZED, "Invalid username or password").into_response())
-    }
+) -> Result<impl IntoResponse, OvenauthError> {
+    let user = User::from_creds(&creds, &db).await?;
+    auth.login(&user).await?;
+    Ok(Json(json!({ "user": user })))
 }
 
-async fn index(State(db): State<PgPool>) -> impl IntoResponse {
-    match User::all(&db).await {
-        Ok(users) => Json(json!({ "users": users })).into_response(),
-        Err(e) => {
-            tracing::error!("{}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "").into_response()
-        }
-    }
+async fn index(
+    State(db): State<PgPool>,
+    user: Option<Extension<User>>,
+) -> Result<impl IntoResponse, OvenauthError> {
+    let users = User::all(&db, user.is_some()).await?;
+    Ok(Json(json!({ "users": users })))
 }
 
 async fn me(Extension(user): Extension<User>) -> impl IntoResponse {
     Json(json!({ "user": user }))
 }
 
-async fn options(Extension(user): Extension<User>, State(db): State<PgPool>) -> impl IntoResponse {
-    match StreamOption::from_user_id(user.id, &db).await {
-        Ok(options) => Json(json!({ "options": options })).into_response(),
-        Err(e) => {
-            tracing::error!("{}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "").into_response()
-        }
-    }
+async fn options(
+    Extension(user): Extension<User>,
+    State(db): State<PgPool>,
+) -> Result<impl IntoResponse, OvenauthError> {
+    let options = StreamOption::from_user_id(user.id, &db).await?;
+    Ok(Json(json!({ "options": options })))
 }
 
-async fn reset(Extension(user): Extension<User>, State(db): State<PgPool>) -> impl IntoResponse {
+async fn reset(
+    Extension(user): Extension<User>,
+    State(db): State<PgPool>,
+) -> Result<impl IntoResponse, OvenauthError> {
     let q = sqlx::query!(
         "
         insert into options
@@ -215,13 +208,8 @@ async fn reset(Extension(user): Extension<User>, State(db): State<PgPool>) -> im
         user.id
     );
 
-    match q.execute(&db).await {
-        Ok(_) => Json(()).into_response(),
-        Err(e) => {
-            tracing::error!("{}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "").into_response()
-        }
-    }
+    q.execute(&db).await?;
+    Ok(Json(()))
 }
 
 pub fn routes() -> Router<PgPool> {
