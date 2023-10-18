@@ -111,6 +111,7 @@ async fn handler(
 
 pub fn routes<S>() -> Router<S> {
     Router::new()
+        // TODO: add readonly for non logged in users. (only if channel is public)
         .route("/:room", get(handler))
         .with_state(Arc::new(Mutex::new(HashMap::new())))
 }
