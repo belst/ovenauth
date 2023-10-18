@@ -47,16 +47,25 @@ struct IncomingMessage {
 type ChatState = Arc<Mutex<HashMap<String, Room>>>;
 
 /// TODO: add more message types. eg: Join/Leave/Commands...
-async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: User) {
+async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: Option<User>) {
     let (mut sender, mut receiver) = socket.split();
     let tx = {
         let mut rooms = state.lock().await;
 
-        let room = rooms
-            .entry(room.clone())
-            .or_insert_with(|| Room::new(broadcast::channel(100).0));
-        room.users.insert(user.id);
-        room.tx.clone()
+        if let Some(ref user) = user {
+            let room = rooms
+                .entry(room.clone())
+                .or_insert_with(|| Room::new(broadcast::channel(100).0));
+            room.users.insert(user.id);
+            room.tx.clone()
+        } else {
+            let Some(room) = rooms.get(&room) else {
+                // anonymous cannot create rooms
+                // implement reconnect logic clientside to check if people joined
+                return;
+            };
+            room.tx.clone()
+        }
     };
 
     let mut rx = tx.subscribe();
@@ -70,20 +79,28 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
             }
         }
     });
-
+    let user_p = user.clone();
     let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(Message::Text(msg))) = receiver.next().await {
-            let Ok(msg) = serde_json::from_str::<IncomingMessage>(&msg) else {
-                break;
-            };
-            let outgoing = OutgoingMessage {
-                message_id: Ulid::new(),
-                content: msg.content,
-                author: user.username.clone(),
-                timestamp: Utc::now(),
-                reply_to: msg.reply_to,
-            };
-            let _ = tx.send(outgoing);
+        if let Some(user) = user_p {
+            while let Some(Ok(Message::Text(msg))) = receiver.next().await {
+                let Ok(msg) = serde_json::from_str::<IncomingMessage>(&msg) else {
+                    break;
+                };
+                let outgoing = OutgoingMessage {
+                    message_id: Ulid::new(),
+                    content: msg.content,
+                    author: user.username.clone(),
+                    timestamp: Utc::now(),
+                    reply_to: msg.reply_to,
+                };
+                let _ = tx.send(outgoing);
+            }
+        } else {
+            // Need to poll to handle PING
+            while let Some(Ok(_)) = receiver.next().await {
+                // ignore incoming message from anonymous users
+                // noop
+            }
         }
     });
 
@@ -92,26 +109,26 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
-    let mut rooms = state.lock().await;
-    let users = &mut rooms.get_mut(&room).expect("room to exist").users;
-    users.remove(&user.id);
-    if users.is_empty() {
-        rooms.remove(&room);
+    if let Some(user) = user {
+        let mut rooms = state.lock().await;
+        let users = &mut rooms.get_mut(&room).expect("room to exist").users;
+        users.remove(&user.id);
+        if users.is_empty() {
+            rooms.remove(&room);
+        }
     }
 }
-
 async fn handler(
     ws: WebSocketUpgrade,
     Path(room): Path<String>,
     State(state): State<ChatState>,
-    Extension(user): Extension<User>,
+    user: Option<Extension<User>>,
 ) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, room, state, user))
+    ws.on_upgrade(|socket| handle_socket(socket, room, state, user.map(|e| e.0)))
 }
 
 pub fn routes<S>() -> Router<S> {
     Router::new()
-        // TODO: add readonly for non logged in users. (only if channel is public)
         .route("/:room", get(handler))
         .with_state(Arc::new(Mutex::new(HashMap::new())))
 }
