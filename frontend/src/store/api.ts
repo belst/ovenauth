@@ -66,7 +66,7 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
 
     return {
         stats: {
-            viewerCount(user: string): Promise<number> {
+            async viewerCount(user: string): Promise<number> {
                 return client.get('/viewers/' + user)('response').then(response => {
                     return response.totalConnections
                 }).catch(_ => -1);
@@ -86,15 +86,15 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
 
         auth: {
             login(user: { username: string, password: string }): Promise<IUser> {
-                return client.post('/login', { user })('user');
+                return client.post('/login', user)('user');
             },
 
             register(user: { username: string, password: string, password_confirmation: string, secret_code: string }): Promise<IUser> {
-                return client.post('/register', { user })('user');
+                return client.post('/register', user)('user');
             },
 
             me(): Promise<IUser> {
-                return client.get('/user')('user');
+                return client.get('/me')('user');
             },
 
             logout(): Promise<void> {

@@ -1,25 +1,32 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
 use axum::response::Response;
 use axum::routing::get;
-use axum::{Router, Extension};
+use axum::{Extension, Router};
 use chrono::Utc;
-use futures_util::future::join_all;
-use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{broadcast, Mutex};
 use ulid::Ulid;
 
-use crate::error::OvenauthError;
 use crate::user::User;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Room {
-    listeners: Arc<Mutex<Vec<SplitSink<WebSocket, Message>>>>,
+    users: HashSet<i32>,
+    tx: broadcast::Sender<OutgoingMessage>,
+}
+
+impl Room {
+    fn new(tx: broadcast::Sender<OutgoingMessage>) -> Self {
+        Room {
+            users: HashSet::new(),
+            tx,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -37,27 +44,38 @@ struct IncomingMessage {
     reply_to: Option<Ulid>,
 }
 
-type ChatState = Arc<RwLock<HashMap<String, Room>>>;
+type ChatState = Arc<Mutex<HashMap<String, Room>>>;
 
+/// TODO: add more message types. eg: Join/Leave/Commands...
 async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: User) {
-    let (sender, mut receiver) = socket.split();
-    let room = {
-        let mut rooms = state.write().await;
+    let (mut sender, mut receiver) = socket.split();
+    let tx = {
+        let mut rooms = state.lock().await;
 
-        let room = rooms.entry(room).or_insert_with(Default::default);
-        room.listeners.lock().await.push(sender); // does this release the lock immediatly again?
-        room.listeners.clone()
+        let room = rooms
+            .entry(room.clone())
+            .or_insert_with(|| Room::new(broadcast::channel(100).0));
+        room.users.insert(user.id);
+        room.tx.clone()
     };
 
-    tokio::spawn(async move {
-        while let Some(Ok(msg)) = receiver.next().await {
-            let msg = match msg {
-                Message::Text(msg) => msg,
-                Message::Binary(_) | Message::Ping(_) | Message::Pong(_) | Message::Close(_) => {
-                    break
-                }
+    let mut rx = tx.subscribe();
+    let mut send_task = tokio::spawn(async move {
+        while let Ok(msg) = rx.recv().await {
+            let Ok(msg) = serde_json::to_string(&msg) else {
+                break;
             };
-            let msg: IncomingMessage = serde_json::from_str(&msg)?;
+            if sender.send(Message::Text(msg)).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(Message::Text(msg))) = receiver.next().await {
+            let Ok(msg) = serde_json::from_str::<IncomingMessage>(&msg) else {
+                break;
+            };
             let outgoing = OutgoingMessage {
                 message_id: Ulid::new(),
                 content: msg.content,
@@ -65,16 +83,21 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
                 timestamp: Utc::now(),
                 reply_to: msg.reply_to,
             };
-            let json = serde_json::to_string(&outgoing)?;
-            let mut lock = room.lock().await;
-            join_all(
-                lock.iter_mut()
-                    .map(move |l| l.send(Message::Text(json.clone()))),
-            )
-            .await;
+            let _ = tx.send(outgoing);
         }
-        Ok::<_, OvenauthError>(())
     });
+
+    // if anything fails, abort
+    tokio::select! {
+        _ = (&mut send_task) => recv_task.abort(),
+        _ = (&mut recv_task) => send_task.abort(),
+    };
+    let mut rooms = state.lock().await;
+    let users = &mut rooms.get_mut(&room).expect("room to exist").users;
+    users.remove(&user.id);
+    if users.is_empty() {
+        rooms.remove(&room);
+    }
 }
 
 async fn handler(
@@ -89,5 +112,5 @@ async fn handler(
 pub fn routes<S>() -> Router<S> {
     Router::new()
         .route("/:room", get(handler))
-        .with_state(Arc::new(RwLock::new(HashMap::new())))
+        .with_state(Arc::new(Mutex::new(HashMap::new())))
 }

@@ -7,7 +7,11 @@ use dotenvy::dotenv;
 use rand::Rng;
 use sqlx::PgPool;
 use std::{env, net::IpAddr};
-use tower_http::{trace::TraceLayer, cors::CorsLayer, services::{ServeDir, ServeFile}};
+use tower_http::{
+    cors::CorsLayer,
+    services::{ServeDir, ServeFile},
+    trace::TraceLayer,
+};
 use tracing_subscriber::prelude::*;
 use user::User;
 

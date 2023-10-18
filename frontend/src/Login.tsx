@@ -2,7 +2,7 @@ import { Component, createMemo, createSignal, Show } from "solid-js";
 import { useService } from "solid-services";
 import { AuthService } from "./store/AuthService";
 import { prevent } from "./utils/preventDefault";
-import { useLocation, useNavigate } from "solid-app-router";
+import { useLocation, useNavigate } from "@solidjs/router";
 import Layout from "./Layout";
 import Title from "./Title";
 

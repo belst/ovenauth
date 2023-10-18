@@ -1,4 +1,4 @@
-import { useParams } from "solid-app-router";
+import { useParams } from "@solidjs/router";
 import { Component } from "solid-js";
 import Title from "./Title";
 import Player from "./Player";

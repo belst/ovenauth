@@ -1,4 +1,4 @@
-import { useRoutes } from "solid-app-router";
+import { useRoutes } from "@solidjs/router";
 import { Component } from "solid-js";
 // import Login from "./Login";
 import Navbar from "./Navbar";

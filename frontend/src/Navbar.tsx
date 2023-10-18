@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "solid-app-router";
+import { NavLink, useNavigate } from "@solidjs/router";
 import { Component, Switch, Match, createSignal } from "solid-js";
 import { useService } from "solid-services";
 import { AuthService } from "./store/AuthService";
