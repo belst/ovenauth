@@ -30,7 +30,7 @@ fn setup_tracing() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "ovenauth=info".into()),
+                .unwrap_or_else(|_| "ovenauth=debug,tower_http=debug,axum::rejection=trace".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -71,7 +71,8 @@ async fn main() -> anyhow::Result<()> {
         .layer(auth_layer)
         .layer(session_layer)
         .layer(cors)
-        .layer(TraceLayer::new_for_http())
+        .layer(TraceLayer::new_for_http()) // maybe change onrequest and onresponse to INFO level
+                                           // by default
         .with_state(db_pool);
 
     axum::Server::bind(&(host.parse::<IpAddr>()?, port.parse()?).into())
