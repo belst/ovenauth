@@ -64,8 +64,8 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Starting server on {}:{}", host, port);
     let app: Router = Router::new()
-        .merge(webhook::routes().with_state(db_pool.clone()))
-        .nest("/user", user::routes().with_state(db_pool.clone()))
+        .merge(webhook::routes())
+        .nest("/user", user::routes())
         .nest("/ws", chat::routes())
         .fallback_service(ServeDir::new(".").not_found_service(ServeFile::new("index.html")))
         .layer(auth_layer)

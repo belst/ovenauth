@@ -3,12 +3,14 @@ use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
-use axum::response::Response;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Extension, Router};
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use tokio::sync::{broadcast, Mutex, RwLock};
 use ulid::Ulid;
 
@@ -58,9 +60,6 @@ struct IncomingMessage {
 
 type ChatState = Arc<Mutex<HashMap<String, Room>>>;
 
-/// TODO: check if room is valid (username exists)
-///   ^- figure out how to do multiple states, maybe have ChatState as an Extension instead of
-///   State
 async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: Option<User>) {
     let (mut sender, mut receiver) = socket.split();
     let (tx, messagebuffer) = {
@@ -156,14 +155,28 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
 async fn handler(
     ws: WebSocketUpgrade,
     Path(room): Path<String>,
-    State(state): State<ChatState>,
+    Extension(state): Extension<ChatState>,
+    State(pool): State<PgPool>,
     user: Option<Extension<User>>,
 ) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, room, state, user.map(|e| e.0)))
+    let valid = sqlx::query_scalar!(
+        r#"select count(*) = 1 as "f!" from users where username = $1"#,
+        &room
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap_or(false);
+    if valid {
+        ws.on_upgrade(|socket| handle_socket(socket, room, state, user.map(|e| e.0)))
+    } else {
+        (StatusCode::NOT_FOUND, "Chatroom not found").into_response()
+    }
 }
 
-pub fn routes<S>() -> Router<S> {
+pub fn routes() -> Router<PgPool> {
     Router::new()
         .route("/:room", get(handler))
-        .with_state(Arc::new(Mutex::new(HashMap::new())))
+        .layer(Extension(Arc::new(Mutex::new(
+            HashMap::<String, Room>::new(),
+        ))))
 }
