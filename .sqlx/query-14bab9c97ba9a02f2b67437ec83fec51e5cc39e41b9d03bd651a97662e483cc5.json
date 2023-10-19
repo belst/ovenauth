@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from users where hidden = false",
+  "query": "\n                select * from users\n                where hidden = false\n                and ($1 or id in (select id from options where public))\n                ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Bool"
+      ]
     },
     "nullable": [
       false,
@@ -34,5 +36,5 @@
       false
     ]
   },
-  "hash": "084dd8530ff743db8df29b4d8715f37b8ffb9a31ed1c3b4611913d2ed808a88d"
+  "hash": "14bab9c97ba9a02f2b67437ec83fec51e5cc39e41b9d03bd651a97662e483cc5"
 }

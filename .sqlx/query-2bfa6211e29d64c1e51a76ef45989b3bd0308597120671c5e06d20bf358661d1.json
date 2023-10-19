@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select o.token, o.user_id, o.name from options o where o.user_id = $1",
+  "query": "select o.token, o.user_id, o.name, o.public from options o where o.user_id = $1",
   "describe": {
     "columns": [
       {
@@ -17,6 +17,11 @@
         "ordinal": 2,
         "name": "name",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "public",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -27,8 +32,9 @@
     "nullable": [
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "9545a4087790343207d689a5fecb45a794dff481ad0f69681117460ebd1704a6"
+  "hash": "2bfa6211e29d64c1e51a76ef45989b3bd0308597120671c5e06d20bf358661d1"
 }
