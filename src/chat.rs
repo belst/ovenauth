@@ -18,7 +18,7 @@ use crate::user::User;
 
 #[derive(Debug)]
 struct Room {
-    users: HashSet<i32>,
+    users: HashMap<i32, usize>,
     tx: broadcast::Sender<MessageType>,
     messagebuffer: Arc<RwLock<VecDeque<OutgoingMessage>>>,
 }
@@ -28,7 +28,7 @@ const BUFFERSIZE: usize = 50;
 impl Room {
     fn new(tx: broadcast::Sender<MessageType>) -> Self {
         Room {
-            users: HashSet::new(),
+            users: HashMap::new(),
             tx,
             messagebuffer: Arc::new(RwLock::new(VecDeque::with_capacity(BUFFERSIZE))),
         }
@@ -69,10 +69,10 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
             .entry(room.clone())
             .or_insert_with(|| Room::new(broadcast::channel(100).0));
         if let Some(ref user) = user {
-            room.users.insert(user.id);
+            *room.users.entry(user.id).or_insert(0) += 1;
         }
         let mut err = false;
-        let userlistmsg = serde_json::to_string(&MessageType::Connect(room.users.clone()))
+        let userlistmsg = serde_json::to_string(&MessageType::Connect(room.users.keys().cloned().collect()))
             .expect("serialization to work");
         err = err || sender.send(Message::Text(userlistmsg)).await.is_err();
         for m in room.messagebuffer.read().await.iter() {
@@ -146,10 +146,15 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         _ = (&mut recv_task) => send_task.abort(),
     };
     if let Some(u) = user {
-        let _ = tx.send(MessageType::Leave(u.username));
         let mut rooms = state.lock().await;
         let room = rooms.get_mut(&room).expect("Room to exist");
-        room.users.remove(&u.id);
+        let c = room.users.get_mut(&u.id).expect("User to exist in room before he leaves");
+        *c -= 1;
+        if *c == 0 {
+            room.users.remove(&u.id);
+            let _ = tx.send(MessageType::Leave(u.username));
+        }
+
     }
 }
 async fn handler(

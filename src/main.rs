@@ -33,7 +33,7 @@ fn setup_tracing() {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "ovenauth=debug,tower_http=info,axum::rejection=trace".into()),
         )
-        .with(tracing_subscriber::fmt::layer().with_target(false).pretty())
+        .with(tracing_subscriber::fmt::layer().with_target(false).compact())
         .init();
 }
 
