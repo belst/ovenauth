@@ -74,31 +74,31 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
         },
         common: {
             users(): Promise<IUser[]> {
-                return client.get('/users')('users');
+                return client.get('/user/users')('users');
             },
             options(): Promise<IStreamOption> {
-                return client.get('/options')('options');
+                return client.get('/user/options')('options');
             },
             reset(): Promise<void> {
-                return client.post('/reset')();
+                return client.post('/user/reset')();
             }
         },
 
         auth: {
             login(user: { username: string, password: string }): Promise<IUser> {
-                return client.post('/login', user)('user');
+                return client.post('/user/login', user)('user');
             },
 
             register(user: { username: string, password: string, password_confirmation: string, secret_code: string }): Promise<IUser> {
-                return client.post('/register', user)('user');
+                return client.post('/user/register', user)('user');
             },
 
             me(): Promise<IUser> {
-                return client.get('/me')('user');
+                return client.get('/user/me')('user');
             },
 
             logout(): Promise<void> {
-                return client.post('/logout')('user');
+                return client.post('/user/logout')('user');
             },
         },
     }

@@ -15,7 +15,9 @@ impl IntoResponse for OvenauthError {
     fn into_response(self) -> axum::response::Response {
         match self {
             // Technically not correct, but easy.
-            Self::Sqlx(sqlx::Error::RowNotFound) => (StatusCode::NOT_FOUND, "Not Found").into_response(),
+            Self::Sqlx(sqlx::Error::RowNotFound) => {
+                (StatusCode::NOT_FOUND, "Not Found").into_response()
+            }
             _ => {
                 tracing::error!("{}", self);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong").into_response()

@@ -9,7 +9,6 @@ use sqlx::PgPool;
 use std::{env, net::IpAddr};
 use tower_http::{
     cors::CorsLayer,
-    services::{ServeDir, ServeFile},
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
@@ -72,7 +71,6 @@ async fn main() -> anyhow::Result<()> {
         .merge(webhook::routes())
         .nest("/user", user::routes())
         .nest("/chat", chat::routes())
-        .fallback_service(ServeDir::new(".").not_found_service(ServeFile::new("index.html")))
         .layer(auth_layer)
         .layer(session_layer)
         .layer(cors)
