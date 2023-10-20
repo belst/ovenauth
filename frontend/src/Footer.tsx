@@ -26,6 +26,13 @@ const Footer: Component = () => {
         'luxury',
         'dracula',
         'cmyk',
+        'autumn',
+        'business',
+        'acid',
+        'lemonade',
+        'night',
+        'coffee',
+        'winter',
     ];
 
     return (
