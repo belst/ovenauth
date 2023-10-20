@@ -62,18 +62,26 @@ type ChatState = Arc<Mutex<HashMap<String, Room>>>;
 
 async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: Option<User>) {
     let (mut sender, mut receiver) = socket.split();
-    let (tx, messagebuffer) = {
+    let (tx, messagebuffer, count) = {
         let mut rooms = state.lock().await;
 
         let room = rooms
             .entry(room.clone())
             .or_insert_with(|| Room::new(broadcast::channel(100).0));
+        let mut c = None;
         if let Some(ref user) = user {
-            *room.users.entry(user.id).or_insert(0) += 1;
+            c = Some(
+                *room
+                    .users
+                    .entry(user.id)
+                    .and_modify(|c| *c += 1)
+                    .or_insert(1),
+            );
         }
         let mut err = false;
-        let userlistmsg = serde_json::to_string(&MessageType::Connect(room.users.keys().cloned().collect()))
-            .expect("serialization to work");
+        let userlistmsg =
+            serde_json::to_string(&MessageType::Connect(room.users.keys().cloned().collect()))
+                .expect("serialization to work");
         err = err || sender.send(Message::Text(userlistmsg)).await.is_err();
         for m in room.messagebuffer.read().await.iter() {
             let txt =
@@ -86,17 +94,24 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
 
         if err {
             if let Some(ref user) = user {
-                room.users.remove(&user.id);
+                let c = room.users.get_mut(&user.id).expect("User to exist in room");
+                *c -= 1;
+                if *c == 0 {
+                    room.users.remove(&user.id);
+                }
             }
             // return here since this happens before we start any tasks
             return;
         }
-        (room.tx.clone(), room.messagebuffer.clone())
+        (room.tx.clone(), room.messagebuffer.clone(), c)
     };
 
     let mut rx = tx.subscribe();
     if let Some(ref u) = user {
-        let _ = tx.send(MessageType::Join(u.username.clone()));
+        // Only send join message on first connection
+        if count.expect("Count to exists, since we are a user") == 1 {
+            let _ = tx.send(MessageType::Join(u.username.clone()));
+        }
     }
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
@@ -148,13 +163,15 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
     if let Some(u) = user {
         let mut rooms = state.lock().await;
         let room = rooms.get_mut(&room).expect("Room to exist");
-        let c = room.users.get_mut(&u.id).expect("User to exist in room before he leaves");
+        let c = room
+            .users
+            .get_mut(&u.id)
+            .expect("User to exist in room before he leaves");
         *c -= 1;
         if *c == 0 {
             room.users.remove(&u.id);
             let _ = tx.send(MessageType::Leave(u.username));
         }
-
     }
 }
 async fn handler(
