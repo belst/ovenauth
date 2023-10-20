@@ -10,8 +10,9 @@ use std::{env, net::IpAddr};
 use tower_http::{
     cors::CorsLayer,
     services::{ServeDir, ServeFile},
-    trace::TraceLayer,
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
 };
+use tracing::Level;
 use tracing_subscriber::prelude::*;
 use user::User;
 
@@ -30,9 +31,9 @@ fn setup_tracing() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "ovenauth=debug,tower_http=debug,axum::rejection=trace".into()),
+                .unwrap_or_else(|_| "ovenauth=debug,tower_http=info,axum::rejection=trace".into()),
         )
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().with_target(false).pretty())
         .init();
 }
 
@@ -71,8 +72,11 @@ async fn main() -> anyhow::Result<()> {
         .layer(auth_layer)
         .layer(session_layer)
         .layer(cors)
-        .layer(TraceLayer::new_for_http()) // maybe change onrequest and onresponse to INFO level
-                                           // by default
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
         .with_state(db_pool);
 
     axum::Server::bind(&(host.parse::<IpAddr>()?, port.parse()?).into())
