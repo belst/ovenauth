@@ -36,7 +36,7 @@ impl Room {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type", content = "data", rename = "lowercase")]
+#[serde(tag = "type", content = "data", rename_all = "lowercase")]
 enum MessageType {
     Join(String),
     Leave(String),
