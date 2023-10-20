@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
     let app: Router = Router::new()
         .merge(webhook::routes())
         .nest("/user", user::routes())
-        .nest("/ws", chat::routes())
+        .nest("/chat", chat::routes())
         .fallback_service(ServeDir::new(".").not_found_service(ServeFile::new("index.html")))
         .layer(auth_layer)
         .layer(session_layer)
