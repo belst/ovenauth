@@ -5,6 +5,7 @@ import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import type { IncomingMessage } from './ChatMessage';
 import ChatMessage from './ChatMessage';
+import { IUser } from '../types/user.interface';
 
 export type JoinMessage = {
     type: "join",
@@ -73,21 +74,31 @@ const Chat: Component = () => {
         ws()?.close();
     });
 
-    return <div>
-        <For each={chatState}>
-            {(cm) => (
-                <Show when={cm.type === 'msg'}>
-                    <ChatMessage message={cm.data as IncomingMessage} />
-                </Show>
-            )}
-        </For>
+    function onKeyDown(e: KeyboardEvent, user: IUser) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const target = e.currentTarget as HTMLInputElement;
+            ws()?.send(JSON.stringify({ author: user.username, content: target.value }));
+            target.value = '';
+        }
+    }
+
+    return <div class="flex flex-col">
+        <div class="flex-grow">
+            <For each={chatState}>
+                {(cm) => (
+                    <Show when={cm.type === 'msg'}>
+                        <ChatMessage message={cm.data as IncomingMessage} />
+                    </Show>
+                )}
+            </For>
+        </div>
         <Show when={authService().user}>
-            {user => <div class="flex">
-                <input type="text" placeholder="Chat here" class="input input-bordered w-full max-w-xs" onsubmit={e => {
-                    ws()?.send(JSON.stringify({ author: user.name, content: e.currentTarget.value }));
-                    e.currentTarget.value = '';
-                }} />
-            </div>}
+            {user => (
+                <div class="flex">
+                    <input type="text" placeholder="Chat here" class="input input-bordered w-full max-w-xs" onkeydown={e => onKeyDown(e, user())  } />
+                </div>)
+            }
         </Show>
     </div>;
 
