@@ -1,5 +1,5 @@
-import { createSignal, type Component, createEffect, For, Switch, Match, Show, onCleanup } from 'solid-js';
-import { createStore, produce } from 'solid-js/store';
+import { createSignal, type Component, createEffect, For, Show, onCleanup } from 'solid-js';
+import { createStore } from 'solid-js/store';
 import { useNavigate, useParams } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
@@ -40,7 +40,17 @@ const Chat: Component = () => {
         if (!params.user) {
             navigate('/');
         }
-        setWs(new WebSocket('ws://65.108.12.102:1422/chat/' + params.user));
+        let wsurl = '';
+        if (window.location.protocol === 'https:') {
+            wsurl = 'wss://';
+        } else {
+            wsurl = 'ws://';
+        }
+        wsurl += window.location.host;
+        if (window.location.port) {
+            wsurl += `:${window.location.port}`
+        }
+        setWs(new WebSocket(`${wsurl}/chat/{params.user}`));
     });
 
     createEffect(() => console.log([...roomState]));
