@@ -50,7 +50,7 @@ const Chat: Component = () => {
         if (window.location.port) {
             wsurl += `:${window.location.port}`
         }
-        setWs(new WebSocket(`${wsurl}/chat/${params.user}`));
+        setWs(new WebSocket(`${wsurl}/api/chat/${params.user}`));
     });
 
     createEffect(() => console.log([...roomState]));
