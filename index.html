@@ -40,7 +40,7 @@
                         submit = s;
                     })
                     .then(() => {
-                        ws = new WebSocket("ws://65.108.12.102:1422/ws/belst");
+                        ws = new WebSocket("ws://65.108.12.102:1422/chat/belst");
 
                         ws.onmessage = ({data: msg}) => {
                             output.append(msg);
