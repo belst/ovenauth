@@ -24,6 +24,7 @@ export type IncomingMessage = {
 // - Tag with ID so u can scrollto easily
 const ChatMessage: Component<{message: IncomingMessage}> = (props) => {
     const authService = useService(AuthService);
+    console.log('ChatMessage', props);
     return (
         <div class="chat" classList={{
                 'chat-start': authService().user?.username === props.message.author,

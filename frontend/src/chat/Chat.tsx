@@ -59,13 +59,13 @@ const Chat: Component = () => {
     createEffect(() => {
         if (!ws()) return;
         ws().onmessage = ({ data }) => {
-            const msg = JSON.parse(data);
+            const msg = JSON.parse(data) as Message;
             if (msg.type === 'connect') {
                 setRoomState(msg.data);
             } else if (msg.type === 'join' || msg.type === 'leave') {
                 // unimplemented
             } else if (msg.type === 'msg') {
-                setChatState(cs => [...cs, msg.data]);
+                setChatState(cs => [...cs, msg]);
             }
         };
     });
