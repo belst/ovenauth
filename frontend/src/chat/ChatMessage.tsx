@@ -22,7 +22,7 @@ export type IncomingMessage = {
 // - Add avatars to user profiles
 // - maybe pass chat-end/chat-start as prop
 // - Tag with ID so u can scrollto easily
-const ChatMessage: Component = (props: {message: IncomingMessage}) => {
+const ChatMessage: Component<{message: IncomingMessage}> = (props) => {
     const authService = useService(AuthService);
     return (
         <div class="chat" classList={{

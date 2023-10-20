@@ -5,6 +5,10 @@ export const routes = [
         component: lazy(() => import("./Stream")),
     },
     {
+        path: "/chat/:user",
+        component: lazy(() => import("./chat/Chat")),
+    },
+    {
         path: '**',
         component: lazy(() => import("./Home")),
     },
