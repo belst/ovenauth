@@ -3,7 +3,7 @@ import { createStore } from 'solid-js/store';
 import { useNavigate, useParams } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
-import type { IncomingMessage } from './ChatMessage';
+import type { IncomingMessage, MessagePosition } from './ChatMessage';
 import ChatMessage from './ChatMessage';
 import { IUser } from '../types/user.interface';
 
@@ -36,71 +36,92 @@ const Chat: Component = () => {
     const [chatState, setChatState] = createStore<Message[]>([]);
     const [roomState, setRoomState] = createStore<number[]>([]);
 
-    let [ws, setWs] = createSignal<WebSocket>();
+    const [ws, setWs] = createSignal<WebSocket>();
     createEffect(() => {
         if (!params.user) {
             navigate('/');
+            return;
         }
         let wsurl = '';
-        if (window.location.protocol === 'https:') {
+        if (import.meta.env.VITE_PROTOCOL === 'https://') {
             wsurl = 'wss://';
         } else {
             wsurl = 'ws://';
         }
-        wsurl += window.location.host;
-        if (window.location.port) {
-            wsurl += `:${window.location.port}`
-        }
-        setWs(new WebSocket(`${wsurl}/api/chat/${params.user}`));
-    });
-
-    createEffect(() => console.log([...roomState]));
-
-    createEffect(() => {
-        if (!ws()) return;
-        ws().onmessage = ({ data }) => {
+        wsurl += import.meta.env.VITE_BASEURL + import.meta.env.VITE_APIPATH;
+        const url = `${wsurl}/chat/${params.user}`;
+        console.log(url);
+        const ws = new WebSocket(url);
+        ws.onmessage = ({ data }) => {
             const msg = JSON.parse(data) as Message;
             if (msg.type === 'connect') {
                 setRoomState(msg.data);
             } else if (msg.type === 'join' || msg.type === 'leave') {
                 // unimplemented
             } else if (msg.type === 'msg') {
-                setChatState(cs => [...cs, msg]);
+                // This order because we flip with flex direction reverse
+                setChatState(cs => [msg, ...cs]);
             }
         };
+        ws.onopen = (e) => console.log('ws opened', e);
+        ws.onclose = () => setWs(undefined);
+        setWs(ws);
     });
+
+    createEffect(() => console.log([...roomState]));
 
     onCleanup(() => {
         ws()?.close();
     });
 
-    function onKeyDown(e: KeyboardEvent, user: IUser) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const target = e.currentTarget as HTMLInputElement;
-            ws()?.send(JSON.stringify({ author: user.username, content: target.value }));
-            target.value = '';
-        }
+    const [input, setInput] = createSignal<HTMLInputElement>();
+
+    function submitChat(e: SubmitEvent, user: IUser) {
+        e.preventDefault();
+        const target = input();
+        if (!target) return;
+        const content = target.value.trim();
+        if (!content.length) return;
+        ws()?.send(JSON.stringify({ author: user.username, content: target.value }));
+        target.value = '';
     }
 
-    return <div class="flex flex-col">
-        <div class="flex-grow">
-            <For each={chatState}>
-                {(cm) => (
-                    <Show when={cm.type === 'msg'}>
-                        <ChatMessage message={cm.data as IncomingMessage} />
-                    </Show>
-                )}
-            </For>
+    function calculatePos(i: number): MessagePosition {
+        if (chatState[i].type !== 'msg') return undefined;
+        const current = chatState[i].data as IncomingMessage;
+        const prevMsg = chatState.find((msg, index) => index > i && msg.type === 'msg')?.data as IncomingMessage;
+        if (i === 0 && prevMsg?.author !== current.author) return 'single';
+        if (i === 0) return 'end';
+        const nextMsg = chatState.find((msg, index) => index < i && msg.type === 'msg')?.data as IncomingMessage;
+        if (prevMsg?.author === current.author && nextMsg?.author === current.author) return 'middle';
+        if (prevMsg?.author === current.author && nextMsg?.author !== current.author) return 'end';
+        if (prevMsg?.author !== current.author && nextMsg?.author === current.author) return 'start';
+        if (prevMsg?.author !== current.author && nextMsg?.author !== current.author) return 'single';
+
+        console.log('unreachable', prevMsg.author, current.author, nextMsg.author);
+    }
+
+    return (
+        <div class="flex flex-col h-full justify-end py-1 border-l border-l-neutral-800">
+            <div class="flex flex-col-reverse overflow-y-auto flex-grow pb-2">
+                <For each={chatState}>
+                    {(cm, i) => (
+                        <Show when={cm.type === 'msg'}>
+                            <ChatMessage position={calculatePos(i())} message={cm.data as IncomingMessage} />
+                        </Show>
+                    )}
+                </For>
+            </div>
+            <Show when={authService().user}>
+                {user => (
+                    <form onsubmit={e => submitChat(e, user())} class="flex flex-col gap-1">
+                        <input ref={setInput} type="text" placeholder="Chat here" class="input input-bordered w-full max-w-xs" />
+                        <input class="btn self-end" type="submit" value="Chat" />
+                    </form>)
+                }
+            </Show>
         </div>
-        <Show when={authService().user}>
-            {user => (
-                <div class="flex">
-                    <input type="text" placeholder="Chat here" class="input input-bordered w-full max-w-xs" onkeydown={e => onKeyDown(e, user())  } />
-                </div>)
-            }
-        </Show>
-    </div>;
+    );
 
 }
 

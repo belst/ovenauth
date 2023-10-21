@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.first-msg:before, .middle-msg:before {
+  display:none;
+}
+.chat-start {
+  .middle-msg {
+    @apply rounded-l-lg;
+  }
+  .end-msg {
+    @apply rounded-bl-none;
+  }
+}
+.chat-end {
+  .middle-msg {
+    @apply rounded-r-lg;
+  }
+  .end-msg {
+    @apply rounded-br-none;
+  }
+}
+
+.chat {
+  @apply pb-0;
+}

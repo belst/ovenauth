@@ -36,9 +36,9 @@ const Footer: Component = () => {
     ];
 
     return (
-        <footer class="items-center mt-4 p-4 footer bg-neutral text-neutral-content bottom-0">
+        <footer class="items-center mt-4 p-2 footer bg-neutral text-neutral-content bottom-0">
             <div class="items-center grid-flow-col">
-                <select class="select select-bordered text-base-content w-full max-w-xs" oninput={(e) => setTheme(e.currentTarget.value)}>
+                <select class="select select-sm select-bordered text-base-content w-full max-w-xs" oninput={(e) => setTheme(e.currentTarget.value)}>
                     <For each={themes}>
                         {(th) => <option selected={theme() === th} value={th}>{th}</option>}
                     </For>
