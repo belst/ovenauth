@@ -1,6 +1,7 @@
 import { Show, type Component } from 'solid-js';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
+import { DateTime } from 'luxon';
 //struct OutgoingMessage {
 //    message_id: Ulid,
 //    content: String,
@@ -41,7 +42,7 @@ const ChatMessage: Component<{ message: IncomingMessage, position: MessagePositi
             <Show when={props.position === 'start' || props.position === 'single'}>
                 <div class="chat-header">
                     {props.message.author}
-                    <time class="text-xs opacity-50">{props.message.timestamp}</time>
+                    <time class="text-xs opacity-50">{DateTime.fromISO(props.message.timestamp).toRelative()}</time>
                 </div>
             </Show>
             <div class="chat-bubble" classList={{

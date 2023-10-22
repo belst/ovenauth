@@ -22,6 +22,8 @@
   "dependencies": {
     "@felte/solid": "^1.2.11",
     "@solidjs/router": "^0.8.3",
+    "@types/luxon": "^3.3.3",
+    "luxon": "^3.4.3",
     "ovenplayer": "^0.10.31",
     "solid-js": "^1.8.1",
     "solid-services": "^4.3.2"
