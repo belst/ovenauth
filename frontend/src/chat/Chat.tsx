@@ -65,6 +65,7 @@ const Chat: Component = () => {
                 setChatState(cs => [msg, ...cs]);
             }
         };
+        ws.onerror = (e) => console.log(e);
         ws.onopen = () => setLoading(false);
         ws.onclose = () => {
             setLoading(true);

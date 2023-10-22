@@ -167,7 +167,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
                 }
             };
             if let Some(err) = e {
-                tracing::error!(?err, "Recv Loop Error");
+                tracing::error!(%err, "Recv Loop Error");
             }
         } else {
             // Need to poll to handle PING
@@ -182,7 +182,9 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         res = (&mut send_task) => {recv_task.abort(); res},
         res = (&mut recv_task) => {send_task.abort(); res},
     };
-    tracing::error!(?error, "Task Join Error");
+    if let Err(e) = error {
+        tracing::error!(%e, "Task Join Error");
+    }
     if let Some(u) = user {
         let mut rooms = state.lock().await;
         let room = rooms.get_mut(&room).expect("Room to exist");
