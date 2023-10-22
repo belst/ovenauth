@@ -1,4 +1,4 @@
-import { Show, type Component } from 'solid-js';
+import { Show, type Component, createSignal, createMemo, onCleanup } from 'solid-js';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import { DateTime } from 'luxon';
@@ -21,14 +21,23 @@ export type IncomingMessage = {
 export type MessagePosition = 'start' | 'middle' | 'end' | 'single';
 
 // TODO: Lots of interactivitiy, eg responding, showing responses, emotes, parsing of content
-// - dateparsing and showing (show relative, with absolute on hover)
 // - Add avatars to user profiles
-// - maybe pass chat-end/chat-start as prop
 // - Tag with ID so u can scrollto easily
 const ChatMessage: Component<{ message: IncomingMessage, position: MessagePosition }> = (props) => {
     const authService = useService(AuthService);
+    const [timestamp, setTimestamp] = createSignal('');
+    const datetime = createMemo(() => DateTime.fromISO(props.message.timestamp));
+    
+    const i = setInterval(() => {
+        setTimestamp(datetime().toRelative());
+    }, 1000);
+
+    onCleanup(() => {
+        clearInterval(i);
+    });
+
     return (
-        <div class="chat" classList={{
+        <div class="chat" id={props.message.message_id} classList={{
             'chat-end': authService().user?.username === props.message.author,
             'chat-start': authService().user?.username !== props.message.author,
         }}>
@@ -41,8 +50,8 @@ const ChatMessage: Component<{ message: IncomingMessage, position: MessagePositi
             </div>
             <Show when={props.position === 'start' || props.position === 'single'}>
                 <div class="chat-header">
-                    {props.message.author}
-                    <time class="text-xs opacity-50">{DateTime.fromISO(props.message.timestamp).toRelative()}</time>
+                    {props.message.author}{' '}
+                    <time class="text-xs opacity-50">{timestamp()}</time>
                 </div>
             </Show>
             <div class="chat-bubble" classList={{
