@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
     routing::get,
-    Router, Json,
+    Json, Router,
 };
 use serde::Serialize;
 use sqlx::PgPool;
@@ -17,19 +17,21 @@ struct PublicStreamOptions {
 async fn stream_options(
     Path(stream): Path<String>,
     State(pool): State<PgPool>,
-) ->  Result<Json<PublicStreamOptions>, OvenauthError> {
-    Ok(Json(sqlx::query_as!(
-        PublicStreamOptions,
-        r#"
+) -> Result<Json<PublicStreamOptions>, OvenauthError> {
+    Ok(Json(
+        sqlx::query_as!(
+            PublicStreamOptions,
+            r#"
             select o.name, u.username
             from options o, users u
             where o.user_id = u.id
             and u.username = $1
         "#,
-        &stream
-    )
-    .fetch_one(&pool)
-    .await?))
+            &stream
+        )
+        .fetch_one(&pool)
+        .await?,
+    ))
 }
 
 pub fn routes() -> Router<PgPool> {

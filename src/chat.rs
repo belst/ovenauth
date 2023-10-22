@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
@@ -122,12 +123,24 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         }
     }
     let mut send_task = tokio::spawn(async move {
-        while let Ok(msg) = rx.recv().await {
-            let Ok(msg) = serde_json::to_string(&msg) else {
-                break;
-            };
-            if sender.send(Message::Text(msg)).await.is_err() {
-                break;
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_secs(30)) => {
+                    if sender.send(Message::Ping(vec![1,2,3])).await.is_err() {
+                        break;
+                    }
+                },
+                Ok(msg) = rx.recv() => {
+                    let Ok(msg) = serde_json::to_string(&msg) else {
+                        break;
+                    };
+                    if sender.send(Message::Text(msg)).await.is_err() {
+                        break;
+                    }
+                },
+                else => {
+                    break;
+                }
             }
         }
     });
