@@ -1,5 +1,5 @@
 import { createSignal, type Component, createEffect, For, Show, onCleanup } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createStore, produce } from 'solid-js/store';
 import { useNavigate, useParams } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
@@ -33,7 +33,7 @@ const Chat: Component = () => {
     const params = useParams();
     const navigate = useNavigate();
 
-    const [chatState, setChatState] = createStore<Message[]>([]);
+    const [chatState, setChatState] = createStore<IncomingMessage[]>([]);
     const [roomState, setRoomState] = createStore<string[]>([]);
     const [loading, setLoading] = createSignal(true);
 
@@ -51,24 +51,27 @@ const Chat: Component = () => {
         }
         wsurl += import.meta.env.VITE_BASEURL + import.meta.env.VITE_APIPATH;
         const url = `${wsurl}/chat/${params.user}`;
-        console.log(url);
         const ws = new WebSocket(url);
-        console.log(ws);
         ws.onmessage = ({ data }) => {
             const msg = JSON.parse(data) as Message;
             if (msg.type === 'connect') {
                 setRoomState(msg.data);
-            } else if (msg.type === 'join' || msg.type === 'leave') {
-                // unimplemented
+            } else if (msg.type === 'join') {
+                const rs = roomState;
+                rs.push(msg.data);
+                rs.sort();
+                setRoomState(produce(() => rs));
+            } else if (msg.type === 'leave') {
+                const rs = roomState.filter(r => r !== msg.data);
+                setRoomState(rs);
             } else if (msg.type === 'msg') {
                 // This order because we flip with flex direction reverse
-                setChatState(cs => [msg, ...cs]);
+                setChatState(cs => [msg.data, ...cs]);
             }
         };
         ws.onerror = (e) => console.log(e);
         ws.onopen = () => setLoading(false);
-        ws.onclose = (e) => {
-            console.log('Websocket close', e);
+        ws.onclose = () => {
             setLoading(true);
             setWs(undefined);
         }
@@ -92,12 +95,9 @@ const Chat: Component = () => {
     }
 
     function calculatePos(i: number): MessagePosition {
-        if (chatState[i].type !== 'msg') return undefined;
-        const current = chatState[i].data as IncomingMessage;
-        const prevMsg = chatState.find((msg, index) => index > i && msg.type === 'msg')?.data as IncomingMessage;
-        if (i === 0 && prevMsg?.author !== current.author) return 'single';
-        if (i === 0) return 'end';
-        const nextMsg = chatState.find((msg, index) => index < i && msg.type === 'msg')?.data as IncomingMessage;
+        const current = chatState[i];
+        const prevMsg = chatState[i+1];
+        const nextMsg = chatState[i-1];
         if (prevMsg?.author === current.author && nextMsg?.author === current.author) return 'middle';
         if (prevMsg?.author === current.author && nextMsg?.author !== current.author) return 'end';
         if (prevMsg?.author !== current.author && nextMsg?.author === current.author) return 'start';
@@ -115,9 +115,7 @@ const Chat: Component = () => {
                 <div class="flex flex-col-reverse overflow-y-auto flex-grow pb-2">
                     <For each={chatState}>
                         {(cm, i) => (
-                            <Show when={cm.type === 'msg'}>
-                                <ChatMessage position={calculatePos(i())} message={cm.data as IncomingMessage} />
-                            </Show>
+                            <ChatMessage position={calculatePos(i())} message={cm as IncomingMessage} />
                         )}
                     </For>
                 </div>
