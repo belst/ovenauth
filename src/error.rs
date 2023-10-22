@@ -10,6 +10,8 @@ pub enum OvenauthError {
     #[error(transparent)]
     Axum(#[from] axum::Error),
     #[error(transparent)]
+    Recv(#[from] tokio::sync::broadcast::error::RecvError),
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 

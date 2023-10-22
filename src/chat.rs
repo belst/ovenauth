@@ -126,21 +126,27 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         loop {
             tokio::select! {
                 _ = tokio::time::sleep(Duration::from_secs(30)) => {
-                    if sender.send(Message::Ping(vec![1,2,3])).await.is_err() {
-                        break;
+                    if let Err(e) = sender.send(Message::Ping(vec![1,2,3])).await {
+                        return OvenauthError::from(e);
                     }
                 },
-                Ok(msg) = rx.recv() => {
-                    let Ok(msg) = serde_json::to_string(&msg) else {
-                        break;
+                msg = rx.recv() => {
+                    let msg = match msg {
+                        Ok(msg) => msg,
+                        Err(e) => {
+                            return e.into();
+                        }
                     };
-                    if sender.send(Message::Text(msg)).await.is_err() {
-                        break;
+                    let msg = match serde_json::to_string(&msg) {
+                        Ok(msg) => msg,
+                        Err(e) => {
+                            return e.into();
+                        }
+                    };
+                    if let Err(e) = sender.send(Message::Text(msg)).await {
+                        return e.into();
                     }
                 },
-                else => {
-                    break;
-                }
             }
         }
     });
@@ -192,7 +198,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
 
     // if anything fails, abort
     let error = tokio::select! {
-        res = (&mut send_task) => {recv_task.abort(); res},
+        res = (&mut send_task) => {recv_task.abort(); res.map(|e| tracing::error!(%e, "Send Task Error"))},
         res = (&mut recv_task) => {send_task.abort(); res},
     };
     if let Err(e) = error {
