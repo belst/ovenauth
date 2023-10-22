@@ -18,7 +18,7 @@ export type LeaveMessage = {
 
 export type ConnectMessage = {
     type: "connect",
-    data: number[],
+    data: string[],
 };
 
 export type MsgMessage = {
@@ -34,7 +34,8 @@ const Chat: Component = () => {
     const navigate = useNavigate();
 
     const [chatState, setChatState] = createStore<Message[]>([]);
-    const [roomState, setRoomState] = createStore<number[]>([]);
+    const [roomState, setRoomState] = createStore<string[]>([]);
+    const [loading, setLoading] = createSignal(true);
 
     const [ws, setWs] = createSignal<WebSocket>();
     createEffect(() => {
@@ -52,6 +53,7 @@ const Chat: Component = () => {
         const url = `${wsurl}/chat/${params.user}`;
         console.log(url);
         const ws = new WebSocket(url);
+        console.log(ws);
         ws.onmessage = ({ data }) => {
             const msg = JSON.parse(data) as Message;
             if (msg.type === 'connect') {
@@ -63,12 +65,13 @@ const Chat: Component = () => {
                 setChatState(cs => [msg, ...cs]);
             }
         };
-        ws.onopen = (e) => console.log('ws opened', e);
-        ws.onclose = () => setWs(undefined);
+        ws.onopen = () => setLoading(false);
+        ws.onclose = () => {
+            setLoading(true);
+            setWs(undefined);
+        }
         setWs(ws);
     });
-
-    createEffect(() => console.log([...roomState]));
 
     onCleanup(() => {
         ws()?.close();
@@ -103,15 +106,20 @@ const Chat: Component = () => {
 
     return (
         <div class="flex flex-col h-full justify-end py-1 border-l border-l-neutral-800">
-            <div class="flex flex-col-reverse overflow-y-auto flex-grow pb-2">
-                <For each={chatState}>
-                    {(cm, i) => (
-                        <Show when={cm.type === 'msg'}>
-                            <ChatMessage position={calculatePos(i())} message={cm.data as IncomingMessage} />
-                        </Show>
-                    )}
-                </For>
+            <div class="text-center p-2 text-lg border-b border-b-neutral-700">
+                Stream Chat
             </div>
+            <Show when={!loading()} fallback={<div class="text-3xl flex-grow grid place-items-center">Loading...</div>}>
+                <div class="flex flex-col-reverse overflow-y-auto flex-grow pb-2">
+                    <For each={chatState}>
+                        {(cm, i) => (
+                            <Show when={cm.type === 'msg'}>
+                                <ChatMessage position={calculatePos(i())} message={cm.data as IncomingMessage} />
+                            </Show>
+                        )}
+                    </For>
+                </div>
+            </Show>
             <Show when={authService().user}>
                 {user => (
                     <form onsubmit={e => submitChat(e, user())} class="flex flex-col gap-1">

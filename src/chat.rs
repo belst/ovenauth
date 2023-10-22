@@ -18,7 +18,7 @@ use crate::user::User;
 
 #[derive(Debug)]
 struct Room {
-    users: HashMap<i32, usize>,
+    users: HashMap<String, usize>,
     tx: broadcast::Sender<MessageType>,
     messagebuffer: Arc<RwLock<VecDeque<OutgoingMessage>>>,
 }
@@ -41,7 +41,7 @@ enum MessageType {
     Join(String),
     Leave(String),
     Msg(OutgoingMessage),
-    Connect(HashSet<i32>),
+    Connect(HashSet<String>),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -61,7 +61,9 @@ struct IncomingMessage {
 
 type ChatState = Arc<Mutex<HashMap<String, Room>>>;
 
+//#[tracing::instrument]
 async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: Option<User>) {
+    tracing::info!(%room, ?user, "New Websocket connection");
     let (mut sender, mut receiver) = socket.split();
     let (tx, messagebuffer, count) = {
         let mut rooms = state.lock().await;
@@ -69,12 +71,13 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         let room = rooms
             .entry(room.clone())
             .or_insert_with(|| Room::new(broadcast::channel(100).0));
+        //tracing::info!(room = ?room.users, "we got a room");
         let mut c = None;
         if let Some(ref user) = user {
             c = Some(
                 *room
                     .users
-                    .entry(user.id)
+                    .entry(user.username.clone())
                     .and_modify(|c| *c += 1)
                     .or_insert(1),
             );
@@ -95,10 +98,10 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
 
         if err {
             if let Some(ref user) = user {
-                let c = room.users.get_mut(&user.id).expect("User to exist in room");
+                let c = room.users.get_mut(&user.username).expect("User to exist in room");
                 *c -= 1;
                 if *c == 0 {
-                    room.users.remove(&user.id);
+                    room.users.remove(&user.username);
                 }
             }
             // return here since this happens before we start any tasks
@@ -166,11 +169,11 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         let room = rooms.get_mut(&room).expect("Room to exist");
         let c = room
             .users
-            .get_mut(&u.id)
+            .get_mut(&u.username)
             .expect("User to exist in room before he leaves");
         *c -= 1;
         if *c == 0 {
-            room.users.remove(&u.id);
+            room.users.remove(&u.username);
             let _ = tx.send(MessageType::Leave(u.username));
         }
     }

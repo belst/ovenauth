@@ -1,8 +1,11 @@
 import { lazy } from 'solid-js';
+import StreamData from './Stream.data';
+
 export const routes = [
     {
         path: "/:user",
         component: lazy(() => import("./Stream")),
+        data: StreamData
     },
     {
         path: "/chat/:user",

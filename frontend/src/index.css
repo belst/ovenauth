@@ -6,19 +6,27 @@
   display:none;
 }
 .chat-start {
+  .first-msg {
+    @apply rounded-bl-lg;
+  }
   .middle-msg {
     @apply rounded-l-lg;
   }
   .end-msg {
     @apply rounded-bl-none;
+    @apply rounded-tl-lg;
   }
 }
 .chat-end {
+  .first-msg {
+    @apply rounded-br-lg;
+  }
   .middle-msg {
     @apply rounded-r-lg;
   }
   .end-msg {
     @apply rounded-br-none;
+    @apply rounded-tr-lg;
   }
 }
 

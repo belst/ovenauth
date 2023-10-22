@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, str::FromStr};
 
 use anyhow::{bail, Context, Result};
 use axum::{
@@ -8,11 +8,14 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
-use axum_login::{secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer};
+use axum_login::{
+    secrecy::{ExposeSecret, SecretString, SecretVec},
+    AuthUser, PostgresStore, RequireAuthorizationLayer,
+};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::{FromRow, PgPool};
+use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
 use crate::error::OvenauthError;
 
@@ -36,13 +39,24 @@ pub struct RegisterCreds {
 }
 
 // TODO: seperate User from Streams
-#[derive(FromRow, Debug, Default, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct User {
     pub id: i32,
     pub username: String,
     #[serde(skip)]
-    pub password: String,
+    pub password: SecretString,
     pub hidden: bool,
+}
+
+impl<'r> FromRow<'r, PgRow> for User {
+    fn from_row(row: &'r PgRow) -> sqlx::Result<Self> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            username: row.try_get("username")?,
+            password: SecretString::from_str(row.try_get("password")?).expect("Infallible"),
+            hidden: row.try_get("hidden")?,
+        })
+    }
 }
 
 #[derive(FromRow, Debug, Serialize)]
@@ -89,7 +103,8 @@ impl User {
         .fetch_one(db)
         .await?;
 
-        let verified = argon2::verify_encoded(&user.password, creds.password.as_bytes())?;
+        let verified =
+            argon2::verify_encoded(&user.password.expose_secret(), creds.password.as_bytes())?;
 
         if verified {
             Ok(user)
@@ -138,7 +153,7 @@ impl AuthUser<i32> for User {
     }
 
     fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
-        SecretVec::new(self.password.clone().into())
+        SecretVec::new(self.password.expose_secret().clone().into())
     }
 }
 

@@ -19,6 +19,7 @@ mod chat;
 mod error;
 mod user;
 mod webhook;
+mod stream;
 
 async fn connect_to_db(db_url: &str) -> sqlx::Result<PgPool> {
     let db_pool = PgPool::connect(db_url).await?;
@@ -70,6 +71,7 @@ async fn main() -> anyhow::Result<()> {
     let app: Router = Router::new()
         .merge(webhook::routes())
         .nest("/user", user::routes())
+        .nest("/stream", stream::routes())
         .nest("/chat", chat::routes())
         .layer(auth_layer)
         .layer(session_layer)
