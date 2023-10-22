@@ -14,6 +14,7 @@ use sqlx::PgPool;
 use tokio::sync::{broadcast, Mutex, RwLock};
 use ulid::Ulid;
 
+use crate::error::OvenauthError;
 use crate::user::User;
 
 #[derive(Debug)]
@@ -98,7 +99,10 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
 
         if err {
             if let Some(ref user) = user {
-                let c = room.users.get_mut(&user.username).expect("User to exist in room");
+                let c = room
+                    .users
+                    .get_mut(&user.username)
+                    .expect("User to exist in room");
                 *c -= 1;
                 if *c == 0 {
                     room.users.remove(&user.username);
@@ -131,25 +135,39 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
     let tx_p = tx.clone();
     let mut recv_task = tokio::spawn(async move {
         if let Some(user) = user_p {
-            while let Some(Ok(Message::Text(msg))) = receiver.next().await {
-                let Ok(msg) = serde_json::from_str::<IncomingMessage>(&msg) else {
-                    break;
-                };
-                let outgoing = OutgoingMessage {
-                    message_id: Ulid::new(),
-                    content: msg.content,
-                    author: user.username.clone(),
-                    timestamp: Utc::now(),
-                    reply_to: msg.reply_to,
-                };
-                {
-                    let mut msgbuff = messagebuffer.write().await;
-                    while msgbuff.len() >= BUFFERSIZE {
-                        msgbuff.pop_front();
+            let e: Option<OvenauthError> = loop {
+                match receiver.next().await {
+                    Some(msg) => {
+                        let msg = match msg {
+                            Ok(Message::Text(msg)) => msg,
+                            Ok(_) => continue, // invalid msg type
+                            Err(e) => break Some(e.into()),
+                        };
+                        let msg = match serde_json::from_str::<IncomingMessage>(&msg) {
+                            Ok(m) => m,
+                            Err(e) => break Some(e.into()),
+                        };
+                        let outgoing = OutgoingMessage {
+                            message_id: Ulid::new(),
+                            content: msg.content,
+                            author: user.username.clone(),
+                            timestamp: Utc::now(),
+                            reply_to: msg.reply_to,
+                        };
+                        {
+                            let mut msgbuff = messagebuffer.write().await;
+                            while msgbuff.len() >= BUFFERSIZE {
+                                msgbuff.pop_front();
+                            }
+                            msgbuff.push_back(outgoing.clone());
+                        }
+                        let _ = tx_p.send(MessageType::Msg(outgoing));
                     }
-                    msgbuff.push_back(outgoing.clone());
+                    None => {}
                 }
-                let _ = tx_p.send(MessageType::Msg(outgoing));
+            };
+            if let Some(err) = e {
+                tracing::error!(?err, "Recv Loop Error");
             }
         } else {
             // Need to poll to handle PING
@@ -160,10 +178,11 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
     });
 
     // if anything fails, abort
-    tokio::select! {
-        _ = (&mut send_task) => recv_task.abort(),
-        _ = (&mut recv_task) => send_task.abort(),
+    let error = tokio::select! {
+        res = (&mut send_task) => {recv_task.abort(); res},
+        res = (&mut recv_task) => {send_task.abort(); res},
     };
+    tracing::error!(?error, "Task Join Error");
     if let Some(u) = user {
         let mut rooms = state.lock().await;
         let room = rooms.get_mut(&room).expect("Room to exist");

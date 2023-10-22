@@ -8,6 +8,8 @@ pub enum OvenauthError {
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
+    Axum(#[from] axum::Error),
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
