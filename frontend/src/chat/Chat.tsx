@@ -67,7 +67,8 @@ const Chat: Component = () => {
         };
         ws.onerror = (e) => console.log(e);
         ws.onopen = () => setLoading(false);
-        ws.onclose = () => {
+        ws.onclose = (e) => {
+            console.log('Websocket close', e);
             setLoading(true);
             setWs(undefined);
         }
