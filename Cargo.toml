@@ -16,13 +16,14 @@ chrono = { version = "0.4.26", features = ["serde"] }
 url = "2.4.0"
 tracing = "0.1.39"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tokio = { version = "1.33.0", features = ["full"] }
+tokio = { version = "1.33.0", features = ["full", "tracing"] }
 tower-http = { version = "0.4.4", features = ["trace", "cors", "fs"] }
 axum = { version = "0.6.20", features = ["ws", "tracing"] }
 axum-login = { git = "https://github.com/maxcountryman/axum-login", rev = "bb7e5d32100bb6846412cee1f26851cc47397991", features = ["sqlx", "postgres"] }
 thiserror = "1.0.49"
 ulid = { version = "1.1.0", features = ["serde"] }
 futures-util = "0.3.28"
+console-subscriber = "0.2.0"
 
 [dependencies.sqlx]
 version = "0.7"

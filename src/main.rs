@@ -28,10 +28,12 @@ async fn connect_to_db(db_url: &str) -> sqlx::Result<PgPool> {
 }
 
 fn setup_tracing() {
+    let console_layer = console_subscriber::spawn();
     tracing_subscriber::registry()
+        .with(console_layer)
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "ovenauth=debug,tower_http=info,axum::rejection=trace".into()),
+                .unwrap_or_else(|_| "ovenauth=debug,tower_http=info,axum::rejection=trace,tokio=trace,runtime=trace".into()),
         )
         .with(
             tracing_subscriber::fmt::layer()

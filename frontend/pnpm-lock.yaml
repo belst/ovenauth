@@ -7,6 +7,12 @@ dependencies:
   '@solidjs/router':
     specifier: ^0.8.3
     version: 0.8.3(solid-js@1.8.1)
+  '@types/luxon':
+    specifier: ^3.3.3
+    version: 3.3.3
+  luxon:
+    specifier: ^3.4.3
+    version: 3.4.3
   ovenplayer:
     specifier: ^0.10.31
     version: 0.10.31
@@ -19,8 +25,8 @@ dependencies:
 
 devDependencies:
   '@types/ovenplayer':
-    specifier: ^0.10.7
-    version: 0.10.7
+    specifier: ^0.10.8
+    version: 0.10.8
   autoprefixer:
     specifier: ^10.4.16
     version: 10.4.16(postcss@8.4.31)
@@ -874,8 +880,12 @@ packages:
       '@babel/types': 7.23.0
     dev: true
 
-  /@types/ovenplayer@0.10.7:
-    resolution: {integrity: sha512-SyO6QW5XPvP2ILJWRkEsERjojLZWHUZ8LGPTEMMZrDsQZA0hu7xRzDw6j9ZRrV1hnlGTXROmSHxGkTohP9lF5Q==}
+  /@types/luxon@3.3.3:
+    resolution: {integrity: sha512-/BJF3NT0pRMuxrenr42emRUF67sXwcZCd+S1ksG/Fcf9O7C3kKCY4uJSbKBE4KDUIYr3WMsvfmWD8hRjXExBJQ==}
+    dev: false
+
+  /@types/ovenplayer@0.10.8:
+    resolution: {integrity: sha512-uTuJPc78BkE63PaPvIVGarKz1VNylcv7s1v34VTDN94PrxSPatQ6FDT804Z42ca6IAt1xAb2Ek2YL3iigcLpEg==}
     dev: true
 
   /ansi-styles@3.2.1:
@@ -1305,6 +1315,11 @@ packages:
     dependencies:
       yallist: 3.1.1
     dev: true
+
+  /luxon@3.4.3:
+    resolution: {integrity: sha512-tFWBiv3h7z+T/tDaoxA8rqTxy1CHV6gHS//QdaH4pulbq/JuBSGgQspQQqcgnwdAx6pNI7cmvz5Sv/addzHmUg==}
+    engines: {node: '>=12'}
+    dev: false
 
   /merge-anything@5.1.7:
     resolution: {integrity: sha512-eRtbOb1N5iyH0tkQDAoQ4Ipsp/5qSR79Dzrz8hEPxRX10RWWR/iQXdoKmBSRCThY1Fh5EhISDtpSc93fpxUniQ==}

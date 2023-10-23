@@ -122,7 +122,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
             let _ = tx.send(MessageType::Join(u.username.clone()));
         }
     }
-    let mut send_task = tokio::spawn(async move {
+    let mut send_task = tokio::task::Builder::new().name("send_task").spawn(async move {
         loop {
             tokio::select! {
                 _ = tokio::time::sleep(Duration::from_secs(30)) => {
@@ -149,10 +149,10 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
                 },
             }
         }
-    });
+    }).expect("Task to be created");
     let user_p = user.clone();
     let tx_p = tx.clone();
-    let mut recv_task = tokio::spawn(async move {
+    let mut recv_task = tokio::task::Builder::new().name("recv_task").spawn(async move {
         if let Some(user) = user_p {
             let e: Option<OvenauthError> = loop {
                 match receiver.next().await {
@@ -182,7 +182,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
                         }
                         let _ = tx_p.send(MessageType::Msg(outgoing));
                     }
-                    None => {}
+                    None => { break None; }
                 }
             };
             if let Some(err) = e {
@@ -194,7 +194,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
                 // ignore incoming message from anonymous users
             }
         }
-    });
+    }).expect("Task to be created");
 
     // if anything fails, abort
     let error = tokio::select! {
