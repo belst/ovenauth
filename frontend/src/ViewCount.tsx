@@ -1,4 +1,4 @@
-import { Component, createResource, ErrorBoundary, onCleanup, onMount, Show } from "solid-js";
+import { Component, createResource, onCleanup, onMount, Show } from "solid-js";
 import { useService } from "solid-services";
 import { StatService } from "./store/StatService";
 

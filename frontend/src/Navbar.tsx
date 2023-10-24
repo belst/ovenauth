@@ -1,14 +1,12 @@
-import { NavLink, useNavigate, useSearchParams } from "@solidjs/router";
-import { Component, Switch, Match, createSignal, Show } from "solid-js";
+import { NavLink, useNavigate } from "@solidjs/router";
+import { Component, Switch, Match, createSignal, Show, useContext } from "solid-js";
 import { useService } from "solid-services";
 import { AuthService } from "./store/AuthService";
-
+import { TheaterContext } from "./store/shownav";
 
 const Navbar: Component = () => {
     const authService = useService(AuthService);
-    const [searchParams] = useSearchParams();
-
-    const showNav = () => searchParams.hideNav === undefined;
+    const [theater] = useContext(TheaterContext);
 
     const logout = async () => {
         await authService().logout();
@@ -19,8 +17,8 @@ const Navbar: Component = () => {
     const navigate = useNavigate();
 
     return (
-        <Show when={showNav()}>
-            <nav class="flex items-center justify-between flex-wrap  bg-neutral text-neutral-content p-2">
+        <Show when={!theater()}>
+            <nav class="flex items-center justify-between flex-wrap w-full bg-neutral text-neutral-content p-2 fixed">
                 <div class="flex-none px-2 mx-2" onclick={() => navigate("/", { replace: true })}
                     onTouchEnd={() => navigate("/", { replace: true })} >
                     <span class="text-lg font-bold">

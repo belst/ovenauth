@@ -1,21 +1,25 @@
 import { useParams, useRouteData } from "@solidjs/router";
-import { Component, Show, createSignal } from "solid-js";
+import { Component, Show, createSignal, useContext } from "solid-js";
 import Title from "./Title";
 import Player from "./Player";
 import Chat from "./chat/Chat";
 import StreamData from "./Stream.data";
+import { TheaterContext } from "./store/shownav";
 
 const Stream: Component = () => {
     const params = useParams();
     const data = useRouteData<typeof StreamData>();
 
+    const [theater] = useContext(TheaterContext);
     const endpoint = import.meta.env.VITE_BASEURL;
     const [sidebaropen, setSidebaropen] = createSignal(true);
 
     return (
         <Show when={data()}>
             <Title value={data().username} />
-            <div class="min-h-[calc(100vh-theme(spacing.12)]">
+            <div class="min-h-[calc(100vh-theme(spacing.12)]" classList={{
+                'mt-12': !theater()
+            }}>
                 <div class="w-[calc(100%-theme(spacing.80))]">
                     <Player
                         url={`wss://${endpoint}/ws/${data().username}`}

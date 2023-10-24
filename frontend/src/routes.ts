@@ -12,6 +12,10 @@ export const routes = [
         component: lazy(() => import("./chat/Chat")),
     },
     {
+        path: "/viewers/:user",
+        component: lazy(() => import("./ViewCountPage")),
+    },
+    {
         path: '**',
         component: lazy(() => import("./Home")),
     },

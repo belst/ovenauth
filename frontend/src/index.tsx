@@ -4,12 +4,15 @@ import { Router } from '@solidjs/router';
 
 import App from "./App";
 import { ServiceRegistry } from "solid-services";
+import { TheaterProvider } from "./store/shownav";
 
 render(
     () => (
         <ServiceRegistry>
             <Router>
-                <App />
+                <TheaterProvider>
+                    <App />
+                </TheaterProvider>
             </Router>
         </ServiceRegistry>
     ),
