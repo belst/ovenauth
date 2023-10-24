@@ -7,7 +7,7 @@ const ViewCountPage = () => {
 
     return (
         <div class="w-full h-screen grid place-items-center">
-            <ViewCount name={params.user}></ViewCount>
+            <ViewCount interval={100000} name={params.user}></ViewCount>
         </div>
     );
 }
