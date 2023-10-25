@@ -54,10 +54,12 @@ const ChatMessage: Component<Props> = (props) => {
             }}>
                 <div class="flex justify-between items-baseline">
                     <span class="font-semibold" style={{ color: color(props.message.author) }}>{props.message.author}</span>
-                    <span class="opacity-[var(--reply-opacity,0)] text-xs cursor-pointer" onclick={() => props.reply(props.message.message_id)}>Reply</span>
+                    <Show when={authService().user}>
+                        <span class="opacity-[var(--reply-opacity,0)] text-xs cursor-pointer" onclick={() => props.reply(props.message.message_id)}>Reply</span>
+                    </Show>
                 </div>
                 <Show when={props.repliedmsg}>
-                    <blockquote class="border-l-2 px-1 max-w-full" style={{ 'border-color': color(props.repliedmsg.author) }}>
+                    <blockquote class="border-l-2 px-1" style={{ 'border-color': color(props.repliedmsg.author) }}>
                         <div class="font-semibold" style={{ color: color(props.repliedmsg.author) }}>{props.repliedmsg.author}</div>
                         <div class="truncate max-w-full">{props.repliedmsg.content}</div>
                     </blockquote>
