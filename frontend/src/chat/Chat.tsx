@@ -6,6 +6,7 @@ import { AuthService } from '../store/AuthService';
 import type { IncomingMessage, MessagePosition } from './ChatMessage';
 import ChatMessage from './ChatMessage';
 import { IUser } from '../types/user.interface';
+import color from '../utils/colors';
 
 export type JoinMessage = {
     type: "join",
@@ -28,7 +29,7 @@ export type MsgMessage = {
 
 export type Message = JoinMessage | LeaveMessage | ConnectMessage | MsgMessage;
 
-const Chat: Component = () => {
+const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const authService = useService(AuthService);
     const params = useParams();
     const navigate = useNavigate();
@@ -83,6 +84,8 @@ const Chat: Component = () => {
     });
 
     const [input, setInput] = createSignal<HTMLInputElement>();
+    const [replying, setReplying] = createSignal<boolean | string>(false);
+    const replyto = () => chatState.find(m => m.message_id === replying());
 
     function submitChat(e: SubmitEvent, user: IUser) {
         e.preventDefault();
@@ -90,14 +93,15 @@ const Chat: Component = () => {
         if (!target) return;
         const content = target.value.trim();
         if (!content.length) return;
-        ws()?.send(JSON.stringify({ author: user.username, content: target.value }));
+        ws()?.send(JSON.stringify({ author: user.username, content: target.value, reply_to: replying() || undefined }));
         target.value = '';
+        setReplying(false);
     }
 
     function calculatePos(i: number): MessagePosition {
         const current = chatState[i];
-        const prevMsg = chatState[i+1];
-        const nextMsg = chatState[i-1];
+        const prevMsg = chatState[i + 1];
+        const nextMsg = chatState[i - 1];
         if (prevMsg?.author === current.author && nextMsg?.author === current.author) return 'middle';
         if (prevMsg?.author === current.author && nextMsg?.author !== current.author) return 'end';
         if (prevMsg?.author !== current.author && nextMsg?.author === current.author) return 'start';
@@ -106,16 +110,30 @@ const Chat: Component = () => {
         console.log('unreachable', prevMsg.author, current.author, nextMsg.author);
     }
 
+    const hideIcon = (
+        <svg fill="currentColor" version="1.1" class="h-6 w-6" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
+            <path d="M4 16V4H2v12h2zM13 15l-1.5-1.5L14 11H6V9h8l-2.5-2.5L13 5l5 5-5 5z"></path>
+        </svg>
+    );
+
+    const toggleSidebar = () => {
+        if (props.toggleSidebar) {
+            props.toggleSidebar();
+        }
+    }
+
     return (
         <div class="flex flex-col h-full justify-end py-1 border-l border-l-neutral-800">
-            <div class="text-center p-2 text-lg border-b border-b-neutral-700">
-                Stream Chat
+            <div class="flex justify-between p-2 text-lg border-b border-b-neutral-700">
+                <button onclick={toggleSidebar} class="btn btn-square btn-outline btn-sm">{hideIcon}</button>
+                <span>Stream Chat</span>
+                <span>Room</span>
             </div>
             <Show when={!loading()} fallback={<div class="text-3xl flex-grow grid place-items-center">Loading...</div>}>
                 <div class="flex flex-col-reverse overflow-y-auto flex-grow pb-2">
                     <For each={chatState}>
                         {(cm, i) => (
-                            <ChatMessage position={calculatePos(i())} message={cm as IncomingMessage} />
+                            <ChatMessage position={calculatePos(i())} message={cm as IncomingMessage} repliedmsg={chatState.find(m => m.message_id === cm.reply_to)} reply={setReplying} />
                         )}
                     </For>
                 </div>
@@ -123,8 +141,25 @@ const Chat: Component = () => {
             <Show when={authService().user}>
                 {user => (
                     <form onsubmit={e => submitChat(e, user())} class="flex flex-col gap-1">
-                        <input ref={setInput} type="text" placeholder="Chat here" class="input input-bordered w-full max-w-xs" />
-                        <input class="btn self-end" type="submit" value="Chat" />
+                        <div class="join join-vertical">
+                            <Show when={replyto()}>
+                                {msg => (
+                                    <div class="join-item bg-neutral px-4 py-2">
+                                        <div class="flex justify-between">
+                                            <span class="font-semibold" style={{ color: color(msg().author) }}>{msg().author}</span>
+                                            <span onclick={() => setReplying(false)} class="cursor-pointer rounded-sm hover:bg-neutral-focus">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div>{msg().content}</div>
+                                    </div>
+                                )}
+                            </Show>
+                            <input ref={setInput} type="text" placeholder="Chat here" class="join-item input input-bordered w-full max-w-xs" />
+                        </div>
+                        <input class="btn self-end" type="submit" value={replying() ? 'Reply' : 'Chat'} />
                     </form>)
                 }
             </Show>

@@ -41,9 +41,9 @@ const Stream: Component = () => {
                         </div>
                     </div>
                 </div>
-                <Show when={sidebaropen()}>
+                <Show when={sidebaropen()} fallback={<div class="fixed right-0 top-12" onclick={() => setSidebaropen(true)}>Open</div>}>
                     <div class="w-80 fixed right-0 bottom-0 top-12">
-                        <Chat />
+                        <Chat toggleSidebar={() => setSidebaropen(o => !o)} />
                     </div>
                 </Show>
             </div>
