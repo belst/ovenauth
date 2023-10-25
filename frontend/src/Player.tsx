@@ -1,4 +1,4 @@
-import { Component, createEffect, createSignal, JSX, onCleanup, onMount, splitProps } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import Hls from 'hls.js';
 import OvenPlayer from 'ovenplayer';
 
@@ -12,20 +12,25 @@ export interface PlayerProps {
     scroll?: boolean,
 }
 
-// TODO: make this a directive instead of a component
-const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (props) => {
-    let ref: HTMLDivElement;
+declare module "solid-js" {
+  namespace JSX {
+    interface Directives {
+      player: PlayerProps;
+    }
+  }
+}
 
-    const [playerProps, divProps] = splitProps(props, ['user', 'autoplay', 'instance', 'scroll']);
+function player(el: Element, props: () => PlayerProps) {
+    console.log(el, props());
     const endpoint = import.meta.env.VITE_BASEURL;
-    const rtcurl = () => `wss://${endpoint}/ws/${props.user}`;
+    const rtcurl = () => `wss://${endpoint}/ws/${props().user}`;
     onMount(() => {
-        const [volume, setVolume] = createSignal(+(localStorage.getItem(`volume_${playerProps.instance}`) || 100));
+        const [volume, setVolume] = createSignal(+(localStorage.getItem(`volume_${props().instance}`) || 100));
 
-        createEffect(() => localStorage.setItem(`volume_${playerProps.instance}`, volume().toString(10)));
+        createEffect(() => localStorage.setItem(`volume_${props().instance}`, volume().toString(10)));
 
-        if (playerProps.scroll) {
-            const doscroll = () => setTimeout(() => ref.scrollIntoView({
+        if (props().scroll) {
+            const doscroll = () => setTimeout(() => el.scrollIntoView({
                 behavior: 'smooth',
                 block: 'start',
             }), 0);
@@ -34,9 +39,9 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
 
             onCleanup(() => window.removeEventListener('resize', doscroll));
         }
-        const player = OvenPlayer.create(ref.firstElementChild as HTMLDivElement, {
+        const player = OvenPlayer.create(el, {
             volume: volume(),
-            autoStart: playerProps.autoplay ?? false,
+            autoStart: props().autoplay ?? false,
             webrtcConfig: {
                 timeoutMaxRetry: 1000000,
                 connectionTimeout: 5000
@@ -50,7 +55,7 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
                 {
                     label: 'LL-HLS',
                     type: 'hls',
-                    file: `/app/${props.user}/llhls.m3u8`,
+                    file: `/app/${props().user}/llhls.m3u8`,
                 }
             ],
         });
@@ -68,12 +73,6 @@ const Stream: Component<PlayerProps & JSX.HTMLAttributes<HTMLDivElement>> = (pro
             player.remove();
         });
     });
-
-    return (
-        <div ref={ref} {...divProps}>
-            <div></div>
-        </div>
-    );
 };
 
-export default Stream;
+export default player;
