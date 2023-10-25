@@ -11,20 +11,24 @@ const Stream: Component = () => {
     const data = useRouteData<typeof StreamData>();
 
     const [theater] = useContext(TheaterContext);
-    const endpoint = import.meta.env.VITE_BASEURL;
     const [sidebaropen, setSidebaropen] = createSignal(true);
 
     return (
         <Show when={data()}>
             <Title value={data().username} />
-            <div class="min-h-[calc(100vh-theme(spacing.12)]" classList={{
+            <div classList={{
+                'h-[calc(100vh-theme(spacing.12)]': theater(),
+                'h-[calc(100vh-theme(spacing.12)-theme(spacing.12)]': !theater(),
                 'mt-12': !theater()
             }}>
-                <div class="w-[calc(100%-theme(spacing.80))]">
+                <div classList={{
+                    'w-[calc(100%-theme(spacing.80))]': sidebaropen(),
+                    'w-full': !sidebaropen()
+                }}>
                     <Player
-                        url={`wss://${endpoint}/ws/${data().username}`}
+                        user={data().username}
                         instance={params.user} autoplay={true}
-                        scroll={true}
+                        scroll={false}
                         id="player"></Player>
                     <div class="flex flex-col pt-1 pl-1">
                         <div class="flex flex-row">

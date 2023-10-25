@@ -18,7 +18,7 @@ const Navbar: Component = () => {
 
     return (
         <Show when={!theater()}>
-            <nav class="flex items-center justify-between flex-wrap w-full bg-neutral text-neutral-content p-2 fixed">
+            <nav class="flex z-10 items-center justify-between flex-wrap w-full bg-neutral text-neutral-content p-2 fixed">
                 <div class="flex-none px-2 mx-2" onclick={() => navigate("/", { replace: true })}
                     onTouchEnd={() => navigate("/", { replace: true })} >
                     <span class="text-lg font-bold">
