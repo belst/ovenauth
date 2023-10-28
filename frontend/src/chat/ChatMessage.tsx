@@ -1,8 +1,11 @@
-import { Show, type Component, createMemo } from 'solid-js';
+import { Show, type Component, createMemo, createResource, createEffect } from 'solid-js';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import { DateTime } from 'luxon';
 import color from '../utils/colors';
+import { useParams, useRouteData } from '@solidjs/router';
+import StreamData from '../Stream.data';
+import { IUser } from '../types/user.interface';
 //struct OutgoingMessage {
 //    message_id: Ulid,
 //    content: String,
@@ -25,15 +28,77 @@ type Props = {
     message: IncomingMessage,
     position: MessagePosition,
     repliedmsg?: IncomingMessage,
-    reply: (_: string) => void
+    reply: (_: string) => void,
 };
 
-// TODO: Lots of interactivitiy, eg responding, showing responses, emotes, parsing of content
+function parseEmotes(msg: string, emotes: any[], user?: IUser) {
+    const ret = msg.split(/\s+/).map(w => {
+        const e = emotes.find(e => e.name === w);
+        const isMention = user && w.match(`@?${user?.username}`);
+        let r: Element | string;
+
+        if (!e) {
+            r = w + ' ';
+        } else if (isMention && isMention[1]) {
+            r = <span class="bg-primary-focus bg-opacity-50">{w}{' '}</span> as Element;
+        } else {
+            r = <div class="inline-grid align-middle m-[-theme(spacing.2)] mx-0 overflow-clip">
+                    <img srcset={`${e.data.host.url}/1x.webp 1x, ${e.data.host.url}/2x.webp 2x, ${e.data.host.url}/3x.webp 3x`}
+                        class="font-extrabold object-contain m-auto border-0 max-w-full"
+                        style="grid-column: 1; grid-row: 1;"
+                        alt={e.name}
+                        loading="lazy"
+                        decoding="async" />
+                </div> as Element;
+        }
+        return r;
+    });
+    // trim trailing space
+    if (ret.length && typeof ret[ret.length - 1] === 'string') {
+        ret[ret.length - 1] = (''+ ret[ret.length - 1]).trim();
+    }
+    return ret;
+}
+
+// TODO: Lots of interactivitiy, mentions
 // - Add avatars to user profiles
 // - Tag with ID so u can scrollto easily
 const ChatMessage: Component<Props> = (props) => {
     const authService = useService(AuthService);
     const datetime = createMemo(() => DateTime.fromISO(props.message.timestamp));
+
+    const { emoteSet } = useRouteData<typeof StreamData>();
+
+    const message = createMemo(() => {
+        if (emoteSet.loading) {
+            return props.message.content;
+        };
+        return parseEmotes(props.message.content, emoteSet().emotes, authService().user);
+    });
+
+    const repliedMsg = createMemo(() => {
+        if (emoteSet.loading) {
+            return props.repliedmsg?.content;
+        };
+        return props.repliedmsg ? parseEmotes(props.repliedmsg.content, emoteSet().emotes, authService().user) : undefined;
+    });
+
+    function highlight(id: string) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const keyframes = {
+            filter: ['brightness(1.5)', 'brightness(1)'],
+            easing: ['ease-in'],
+        };
+        if (typeof (el as any).scrollIntoViewIfNeeded !== 'undefined') {
+            (el as any).scrollIntoViewIfNeeded({ behavior: 'smooth' });
+        } else {
+            el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        el.animate(keyframes, 1000);
+    }
 
     return (
         <div class="chat hover:[--reply-opacity:0.5]" id={props.message.message_id} classList={{
@@ -59,12 +124,12 @@ const ChatMessage: Component<Props> = (props) => {
                     </Show>
                 </div>
                 <Show when={props.repliedmsg}>
-                    <blockquote class="border-l-2 px-1" style={{ 'border-color': color(props.repliedmsg.author) }}>
+                    <blockquote class="border-l-2 px-1 cursor-pointer" style={{ 'border-color': color(props.repliedmsg.author) }} onclick={() => highlight(props.repliedmsg.message_id)}>
                         <div class="font-semibold" style={{ color: color(props.repliedmsg.author) }}>{props.repliedmsg.author}</div>
-                        <div class="truncate max-w-full">{props.repliedmsg.content}</div>
+                        <div class="truncate max-w-full">{repliedMsg()}</div>
                     </blockquote>
                 </Show>
-                {props.message.content}
+                {message()}
                 <time class="opacity-0 text-xs">{datetime().toLocaleString(DateTime.TIME_SIMPLE)}</time>
                 <time class="opacity-50 text-xs absolute right-2 bottom-2">{datetime().toLocaleString(DateTime.TIME_SIMPLE)}</time>
             </div>

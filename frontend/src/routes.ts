@@ -10,6 +10,7 @@ export const routes = [
     {
         path: "/chat/:user",
         component: lazy(() => import("./chat/Chat")),
+        data: StreamData
     },
     {
         path: "/viewers/:user",

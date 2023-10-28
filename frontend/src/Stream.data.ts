@@ -12,6 +12,11 @@ export default function StreamData({ params }) {
         return await fetch(url).then(r => r.json());
     });
 
-    return streamInfo;
+    const [emoteSet] = createResource(() => params.user, async (_user) => {
+        return await fetch('https://7tv.io/v3/emote-sets/60ead4ed1bc42372a0f58a0b')
+            .then(b => b.json());
+    });
+
+    return { streamInfo, emoteSet };
 }
 

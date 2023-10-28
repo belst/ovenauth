@@ -9,11 +9,16 @@ player;
 
 const Stream: Component = () => {
     const params = useParams();
-    const data = useRouteData<typeof StreamData>();
+    const { streamInfo: data } = useRouteData<typeof StreamData>();
 
     const [theater] = useContext(TheaterContext);
     const [sidebaropen, setSidebaropen] = createSignal(true);
 
+    const showIcon = (
+        <svg fill="currentColor" version="1.1" class="h-6 w-6 -scale-x-100" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
+            <path d="M4 16V4H2v12h2zM13 15l-1.5-1.5L14 11H6V9h8l-2.5-2.5L13 5l5 5-5 5z"></path>
+        </svg>
+    );
     return (
         <Show when={data()}>
             <Title value={data().username} />
@@ -22,11 +27,11 @@ const Stream: Component = () => {
                 'h-[calc(100vh-theme(spacing.40))]': !theater(),
                 'mt-12': !theater()
             }}>
-                <div class="h-full" classList={{
-                    'w-[calc(100%-theme(spacing.80))]': sidebaropen(),
+                <div class="md:h-full" classList={{
+                    'w-full md:w-[calc(100%-theme(spacing.80))]': sidebaropen(),
                     'w-full': !sidebaropen()
                 }}>
-                    <div use:player={{
+                    <div use: player={{
                         user: data().username,
                         instance: params.user,
                         autoplay: true,
@@ -43,8 +48,21 @@ const Stream: Component = () => {
                         </div>
                     </div>
                 </div>
-                <Show when={sidebaropen()} fallback={<div class="fixed right-0 top-12" onclick={() => setSidebaropen(true)}>Open</div>}>
-                    <div class="w-80 fixed right-0 bottom-0 top-12">
+                <Show when={sidebaropen()}
+                    fallback={<button
+                        class="fixed right-0 btn btn-square btn-outline btn-sm m-2"
+                        classList={{
+                            "top-12": !theater(),
+                            "top-0": theater(),
+                        }}
+                        onclick={() => setSidebaropen(true)}>
+                        {showIcon}
+                    </button>}
+                >
+                    <div class="md:w-80 md:fixed md:right-0 md:bottom-0" classList={{
+                        "md:top-12": !theater(),
+                        "md:top-0": theater(),
+                    }}>
                         <Chat toggleSidebar={() => setSidebaropen(o => !o)} />
                     </div>
                 </Show>
