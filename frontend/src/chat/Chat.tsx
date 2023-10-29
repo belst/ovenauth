@@ -131,8 +131,8 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
 
     const style = () => ({
         'h-screen': standalone(),
-        'h-[calc(100vh-56.2vw)]': theater(),
-        'h-[calc(100vh-56.2vw-theme(spacing.12))]': !theater()
+        'h-[calc(100dvh-56.2vw)]': theater(),
+        'h-[calc(100dvh-56.2vw-theme(spacing.12))]': !theater()
     });
 
     return (

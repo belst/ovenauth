@@ -24,7 +24,7 @@ const Stream: Component = () => {
             <Title value={data().username} />
             <div classList={{
                 'h-screen': theater(),
-                'h-[calc(100vh-theme(spacing.40))]': !theater(),
+                'h-[calc(100dvh-theme(spacing.40))]': !theater(),
                 'mt-12': !theater()
             }}>
                 <div class="md:h-full" classList={{

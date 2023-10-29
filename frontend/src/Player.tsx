@@ -22,7 +22,7 @@ declare module "solid-js" {
 }
 
 function player(el: Element, props: () => PlayerProps) {
-    const [theater, { toggleTheaterMode }] = useContext(TheaterContext);
+    const [_, { toggleTheaterMode }] = useContext(TheaterContext);
     const endpoint = import.meta.env.VITE_BASEURL;
     const rtcurl = () => `wss://${endpoint}/ws/${props().user}`;
     onMount(() => {
@@ -73,7 +73,7 @@ function player(el: Element, props: () => PlayerProps) {
             // todo: custom icon
             const theaterbutton = (
                 <div class="theater-holder op-navigators op-clear">
-                    <button onclick={toggleTheaterMode} class="op-button op-theater-button">
+                    <button onclick={() => toggleTheaterMode()} class="op-button op-theater-button">
                         <i class="op-con op-playlist-icon"></i>
                     </button>
                 </div>
