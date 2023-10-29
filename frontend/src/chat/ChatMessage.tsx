@@ -120,7 +120,14 @@ const ChatMessage: Component<Props> = (props) => {
                     </Show>
                 </div>
                 <Show when={props.repliedmsg}>
-                    <blockquote class="border-l-2 px-1 cursor-pointer" style={{ 'border-color': color(props.repliedmsg.author) }} onclick={() => highlight(props.repliedmsg.message_id)}>
+                    <blockquote
+                        class="border-l-2 px-1 cursor-pointer rounded-sm"
+                        style={{
+                            'border-color': color(props.repliedmsg.author),
+                            // #RRGGBBAA 0x19 = 25dec ~ 10%
+                            'background-color': `${color(props.repliedmsg.author)}19`
+                        }}
+                        onclick={() => highlight(props.repliedmsg.message_id)}>
                         <div class="font-semibold" style={{ color: color(props.repliedmsg.author) }}>{props.repliedmsg.author}</div>
                         <div class="truncate max-w-full">{repliedMsg()}</div>
                     </blockquote>
