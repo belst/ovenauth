@@ -108,7 +108,7 @@ const ChatMessage: Component<Props> = (props) => {
                     </div>
                 </Show>
             </div>
-            <div class="chat-bubble hover:bg-neutral-focus w-[unset]" classList={{
+            <div class="chat-bubble hover:bg-neutral-focus w-[unset] break-words" classList={{
                 'first-msg': props.position === 'start',
                 'middle-msg': props.position === 'middle',
                 'end-msg': props.position === 'end'

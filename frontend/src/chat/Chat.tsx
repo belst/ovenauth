@@ -1,12 +1,13 @@
-import { createSignal, type Component, createEffect, For, Show, onCleanup } from 'solid-js';
+import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { useNavigate, useParams } from '@solidjs/router';
+import { useNavigate, useParams, useLocation } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import type { IncomingMessage, MessagePosition } from './ChatMessage';
 import ChatMessage from './ChatMessage';
 import { IUser } from '../types/user.interface';
 import color from '../utils/colors';
+import { TheaterContext } from '../store/shownav';
 
 export type JoinMessage = {
     type: "join",
@@ -32,11 +33,14 @@ export type Message = JoinMessage | LeaveMessage | ConnectMessage | MsgMessage;
 const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const authService = useService(AuthService);
     const params = useParams();
+    const location = useLocation();
     const navigate = useNavigate();
 
     const [chatState, setChatState] = createStore<IncomingMessage[]>([]);
     const [roomState, setRoomState] = createStore<string[]>([]);
     const [loading, setLoading] = createSignal(true);
+
+    const [theater] = useContext(TheaterContext);
 
     const [ws, setWs] = createSignal<WebSocket>();
     createEffect(() => {
@@ -122,8 +126,17 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
         }
     }
 
+
+    const standalone = () => location.pathname.startsWith('/chat');
+
+    const style = () => ({
+        'h-screen': standalone(),
+        'h-[calc(100vh-56.2vw)]': theater(),
+        'h-[calc(100vh-56.2vw-theme(spacing.12))]': !theater()
+    });
+
     return (
-        <div class="flex flex-col h-full justify-end py-1 border-l border-l-neutral-800">
+        <div class="flex flex-col md:h-full justify-end py-1 border-l border-l-neutral-800" classList={style()}>
             <div class="flex justify-between p-2 text-lg border-b border-b-neutral-700">
                 <button onclick={toggleSidebar} class="btn btn-square btn-outline btn-sm">{hideIcon}</button>
                 <span>Stream Chat</span>

@@ -1,6 +1,7 @@
-import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, useContext } from "solid-js";
 import Hls from 'hls.js';
 import OvenPlayer from 'ovenplayer';
+import { TheaterContext } from "./store/shownav";
 
 // Needed for hls playback Sadge
 (window as any).Hls = Hls;
@@ -13,15 +14,15 @@ export interface PlayerProps {
 }
 
 declare module "solid-js" {
-  namespace JSX {
-    interface Directives {
-      player: PlayerProps;
+    namespace JSX {
+        interface Directives {
+            player: PlayerProps;
+        }
     }
-  }
 }
 
 function player(el: Element, props: () => PlayerProps) {
-    console.log(el, props());
+    const [theater, { toggleTheaterMode }] = useContext(TheaterContext);
     const endpoint = import.meta.env.VITE_BASEURL;
     const rtcurl = () => `wss://${endpoint}/ws/${props().user}`;
     onMount(() => {
@@ -67,6 +68,19 @@ function player(el: Element, props: () => PlayerProps) {
                 timeout = setTimeout(() => player.play(), 1000);
             }
         });
+
+        player.once('ready', () => setTimeout(() => {
+            // todo: custom icon
+            const theaterbutton = (
+                <div class="theater-holder op-navigators op-clear">
+                    <button onclick={toggleTheaterMode} class="op-button op-theater-button">
+                        <i class="op-con op-playlist-icon"></i>
+                    </button>
+                </div>
+            );
+            player.getContainerElement().querySelector('.setting-holder.op-navigators.op-clear')
+                .after(theaterbutton as Node);
+        }));
 
         onCleanup(() => {
             clearTimeout(timeout);

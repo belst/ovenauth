@@ -23,7 +23,7 @@ const Stream: Component = () => {
         <Show when={data()}>
             <Title value={data().username} />
             <div classList={{
-                'h-[calc(100vh-theme(spacing.28))]': theater(),
+                'h-screen': theater(),
                 'h-[calc(100vh-theme(spacing.40))]': !theater(),
                 'mt-12': !theater()
             }}>
@@ -37,16 +37,18 @@ const Stream: Component = () => {
                         autoplay: true,
                         scroll: false
                     }}></div>
-                    <div class="flex flex-col pt-1 pl-1">
-                        <div class="flex flex-row">
-                            <div class="avatar placeholder">
-                                <div class="w-24 mask mask-squircle bg-neutral-focus text-neutral-content">
-                                    <span class="text-3xl">{data().username.substring(0, 2)}</span>
+                    <Show when={!theater()}>
+                        <div class="md:flex hidden flex-col pt-1 pl-1">
+                            <div class="flex flex-row">
+                                <div class="avatar placeholder">
+                                    <div class="w-24 mask mask-squircle bg-neutral-focus text-neutral-content">
+                                        <span class="text-3xl">{data().username.substring(0, 2)}</span>
+                                    </div>
                                 </div>
+                                <h1 class="p-8 text-xl">{data().name ?? 'No Stream title'}</h1>
                             </div>
-                            <h1 class="p-8 text-xl">{data().name ?? 'No Stream title'}</h1>
                         </div>
-                    </div>
+                    </Show>
                 </div>
                 <Show when={sidebaropen()}
                     fallback={<button
