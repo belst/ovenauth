@@ -1,9 +1,9 @@
-import { Show, type Component, createMemo, createResource, createEffect } from 'solid-js';
+import { Show, type Component, createMemo } from 'solid-js';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import { DateTime } from 'luxon';
 import color from '../utils/colors';
-import { useParams, useRouteData } from '@solidjs/router';
+import { useRouteData } from '@solidjs/router';
 import StreamData from '../Stream.data';
 import { IUser } from '../types/user.interface';
 //struct OutgoingMessage {
@@ -100,6 +100,9 @@ const ChatMessage: Component<Props> = (props) => {
         <div class="chat hover:[--reply-opacity:0.5]" id={props.message.message_id} classList={{
             'chat-end': authService().user?.username === props.message.author,
             'chat-start': authService().user?.username !== props.message.author,
+            'first-msg': props.position === 'start',
+            'middle-msg': props.position === 'middle',
+            'end-msg': props.position === 'end'
         }}>
             <div class="chat-image avatar placeholder">
                 <Show fallback={<div class="w-10"></div>} when={props.position === 'end' || props.position === 'single'}>
@@ -108,11 +111,7 @@ const ChatMessage: Component<Props> = (props) => {
                     </div>
                 </Show>
             </div>
-            <div class="chat-bubble hover:bg-neutral-focus w-[unset] break-words" classList={{
-                'first-msg': props.position === 'start',
-                'middle-msg': props.position === 'middle',
-                'end-msg': props.position === 'end'
-            }}>
+            <div class="chat-bubble hover:bg-neutral-focus w-[unset] break-words">
                 <div class="flex justify-between items-baseline">
                     <span class="font-semibold" style={{ color: color(props.message.author) }}>{props.message.author}</span>
                     <Show when={authService().user}>

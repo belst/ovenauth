@@ -6,36 +6,35 @@
   --op-accent-color: hsl(var(--a));
 }
 
-@layer base {
-  .first-msg:before, .middle-msg:before {
-    display:none;
-  }
-  .chat-start {
-    .first-msg {
-      @apply rounded-bl-lg;
-    }
-    .middle-msg {
-      @apply rounded-l-lg;
-    }
-    .end-msg {
-      @apply rounded-bl-none;
-      @apply rounded-tl-lg;
-    }
-  }
-  .chat-end {
-    .first-msg {
-      @apply rounded-br-lg;
-    }
-    .middle-msg {
-      @apply rounded-r-lg;
-    }
-    .end-msg {
-      @apply rounded-br-none;
-      @apply rounded-tr-lg;
-    }
-  }
+.first-msg .chat-bubble:before, .middle-msg .chat-bubble:before {
+  display:none;
+}
 
-  .chat {
-    @apply pb-0;
+.chat-start {
+  &.first-msg .chat-bubble {
+    @apply rounded-bl-lg;
   }
+  &.middle-msg .chat-bubble {
+    @apply rounded-l-lg;
+  }
+  &.end-msg .chat-bubble {
+    @apply rounded-bl-none;
+    @apply rounded-tl-lg;
+  }
+}
+.chat-end {
+  &.first-msg .chat-bubble {
+    @apply rounded-br-lg;
+  }
+  &.middle-msg .chat-bubble {
+    @apply rounded-r-lg;
+  }
+  &.end-msg .chat-bubble {
+    @apply rounded-br-none;
+    @apply rounded-tr-lg;
+  }
+}
+
+.first-msg, .middle-msg {
+  @apply pb-0;
 }

@@ -27,9 +27,10 @@ const Stream: Component = () => {
                 'h-[calc(100dvh-theme(spacing.40))]': !theater(),
                 'mt-12': !theater()
             }}>
-                <div class="md:h-full" classList={{
+                <div class="md:h-full grid items-center" classList={{
                     'w-full md:w-[calc(100%-theme(spacing.80))]': sidebaropen(),
-                    'w-full': !sidebaropen()
+                    'w-full': !sidebaropen(),
+                    'bg-black': theater(),
                 }}>
                     <div use: player={{
                         user: data().username,
@@ -37,19 +38,19 @@ const Stream: Component = () => {
                         autoplay: true,
                         scroll: false
                     }}></div>
-                    <Show when={!theater()}>
-                        <div class="md:flex hidden flex-col pt-1 pl-1">
-                            <div class="flex flex-row">
-                                <div class="avatar placeholder">
-                                    <div class="w-24 mask mask-squircle bg-neutral-focus text-neutral-content">
-                                        <span class="text-3xl">{data().username.substring(0, 2)}</span>
-                                    </div>
-                                </div>
-                                <h1 class="p-8 text-xl">{data().name ?? 'No Stream title'}</h1>
-                            </div>
-                        </div>
-                    </Show>
                 </div>
+                <Show when={!theater()}>
+                    <div class="md:flex hidden flex-col pt-1 pl-1" classList={{ 'mr-80': sidebaropen() }}>
+                        <div class="flex flex-row">
+                            <div class="avatar placeholder">
+                                <div class="w-24 mask mask-squircle bg-neutral-focus text-neutral-content">
+                                    <span class="text-3xl">{data().username.substring(0, 2)}</span>
+                                </div>
+                            </div>
+                            <h1 class="p-8 text-xl">{data().name ?? 'No Stream title'}</h1>
+                        </div>
+                    </div>
+                </Show>
                 <Show when={sidebaropen()}
                     fallback={<button
                         class="fixed right-0 btn btn-square btn-outline btn-sm m-2"
