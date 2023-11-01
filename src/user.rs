@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
-use crate::error::OvenauthError;
+use crate::{error::OvenauthError, options::{PrivateOptions, StreamOptions}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserWrapper<T: std::fmt::Debug + Serialize> {
@@ -38,7 +38,6 @@ pub struct RegisterCreds {
     secret_code: String,
 }
 
-// TODO: seperate User from Streams
 #[derive(Debug, Clone, Serialize)]
 pub struct User {
     pub id: i32,
@@ -56,28 +55,6 @@ impl<'r> FromRow<'r, PgRow> for User {
             password: SecretString::from_str(row.try_get("password")?).expect("Infallible"),
             hidden: row.try_get("hidden")?,
         })
-    }
-}
-
-#[derive(FromRow, Debug, Serialize)]
-pub struct StreamOption {
-    pub token: String,
-    pub user_id: i32,
-    pub name: String,
-    pub public: bool,
-}
-
-impl StreamOption {
-    pub async fn from_user_id(user_id: i32, pool: &PgPool) -> Result<Option<Self>> {
-        let ooptions = sqlx::query_as!(
-            Self,
-            "select o.token, o.user_id, o.name, o.public from options o where o.user_id = $1",
-            user_id
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(ooptions)
     }
 }
 
@@ -204,20 +181,20 @@ async fn options(
     Extension(user): Extension<User>,
     State(db): State<PgPool>,
 ) -> Result<impl IntoResponse, OvenauthError> {
-    let options = StreamOption::from_user_id(user.id, &db).await?;
+    let options = StreamOptions::from_user_id(user.id, &db).await?;
     Ok(Json(json!({ "options": options })))
 }
 
-async fn reset(
+async fn reset_token(
     Extension(user): Extension<User>,
     State(db): State<PgPool>,
 ) -> Result<impl IntoResponse, OvenauthError> {
     let q = sqlx::query!(
         "
         insert into options
-            (name, user_id, token)
+            (user_id, token)
         values
-            ('Stream Token', $1, MD5(random()::text))
+            ($1, MD5(random()::text))
         on conflict (user_id) do update
         set token = MD5(random()::text)",
         user.id
@@ -229,7 +206,7 @@ async fn reset(
 
 pub fn routes() -> Router<PgPool> {
     Router::new()
-        .route("/reset", post(reset))
+        .route("/reset", post(reset_token))
         .route("/options", get(options))
         .route("/me", get(me))
         .route("/logout", post(logout))

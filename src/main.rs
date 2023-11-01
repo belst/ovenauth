@@ -17,6 +17,7 @@ use user::User;
 
 mod chat;
 mod error;
+mod options;
 mod stream;
 mod user;
 mod webhook;
@@ -32,8 +33,10 @@ fn setup_tracing() {
     tracing_subscriber::registry()
         .with(console_layer)
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "ovenauth=debug,tower_http=info,axum::rejection=trace,tokio=trace,runtime=trace".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                "ovenauth=debug,tower_http=info,axum::rejection=trace,tokio=trace,runtime=trace"
+                    .into()
+            }),
         )
         .with(
             tracing_subscriber::fmt::layer()

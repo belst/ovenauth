@@ -122,79 +122,87 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
             let _ = tx.send(MessageType::Join(u.username.clone()));
         }
     }
-    let mut send_task = tokio::task::Builder::new().name("send_task").spawn(async move {
-        loop {
-            tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(30)) => {
-                    if let Err(e) = sender.send(Message::Ping(vec![1,2,3])).await {
-                        return OvenauthError::from(e);
-                    }
-                },
-                msg = rx.recv() => {
-                    let msg = match msg {
-                        Ok(msg) => msg,
-                        Err(e) => {
+    let mut send_task = tokio::task::Builder::new()
+        .name("send_task")
+        .spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = tokio::time::sleep(Duration::from_secs(30)) => {
+                        if let Err(e) = sender.send(Message::Ping(vec![1,2,3])).await {
+                            return OvenauthError::from(e);
+                        }
+                    },
+                    msg = rx.recv() => {
+                        let msg = match msg {
+                            Ok(msg) => msg,
+                            Err(e) => {
+                                return e.into();
+                            }
+                        };
+                        let msg = match serde_json::to_string(&msg) {
+                            Ok(msg) => msg,
+                            Err(e) => {
+                                return e.into();
+                            }
+                        };
+                        if let Err(e) = sender.send(Message::Text(msg)).await {
                             return e.into();
                         }
-                    };
-                    let msg = match serde_json::to_string(&msg) {
-                        Ok(msg) => msg,
-                        Err(e) => {
-                            return e.into();
-                        }
-                    };
-                    if let Err(e) = sender.send(Message::Text(msg)).await {
-                        return e.into();
-                    }
-                },
+                    },
+                }
             }
-        }
-    }).expect("Task to be created");
+        })
+        .expect("Task to be created");
     let user_p = user.clone();
     let tx_p = tx.clone();
-    let mut recv_task = tokio::task::Builder::new().name("recv_task").spawn(async move {
-        if let Some(user) = user_p {
-            let e: Option<OvenauthError> = loop {
-                match receiver.next().await {
-                    Some(msg) => {
-                        let msg = match msg {
-                            Ok(Message::Text(msg)) => msg,
-                            Ok(_) => continue, // invalid msg type
-                            Err(e) => break Some(e.into()),
-                        };
-                        let msg = match serde_json::from_str::<IncomingMessage>(&msg) {
-                            Ok(m) => m,
-                            Err(e) => break Some(e.into()),
-                        };
-                        let outgoing = OutgoingMessage {
-                            message_id: Ulid::new(),
-                            content: msg.content,
-                            author: user.username.clone(),
-                            timestamp: Utc::now(),
-                            reply_to: msg.reply_to,
-                        };
-                        {
-                            let mut msgbuff = messagebuffer.write().await;
-                            while msgbuff.len() >= BUFFERSIZE {
-                                msgbuff.pop_front();
+    let mut recv_task = tokio::task::Builder::new()
+        .name("recv_task")
+        .spawn(async move {
+            if let Some(user) = user_p {
+                let e: Option<OvenauthError> = loop {
+                    match receiver.next().await {
+                        Some(msg) => {
+                            let msg = match msg {
+                                Ok(Message::Text(msg)) => msg,
+                                Ok(_) => continue, // invalid msg type
+                                Err(e) => break Some(e.into()),
+                            };
+                            let msg = match serde_json::from_str::<IncomingMessage>(&msg) {
+                                Ok(m) => m,
+                                Err(e) => break Some(e.into()),
+                            };
+                            let outgoing = OutgoingMessage {
+                                message_id: Ulid::new(),
+                                content: msg.content,
+                                author: user.username.clone(),
+                                timestamp: Utc::now(),
+                                reply_to: msg.reply_to,
+                            };
+                            {
+                                let mut msgbuff = messagebuffer.write().await;
+                                while msgbuff.len() >= BUFFERSIZE {
+                                    msgbuff.pop_front();
+                                }
+                                msgbuff.push_back(outgoing.clone());
                             }
-                            msgbuff.push_back(outgoing.clone());
+                            let _ = tx_p.send(MessageType::Msg(outgoing));
                         }
-                        let _ = tx_p.send(MessageType::Msg(outgoing));
+                        None => {
+                            break None;
+                        }
                     }
-                    None => { break None; }
+                };
+                if let Some(err) = e {
+                    tracing::error!(%err, "Recv Loop Error");
                 }
-            };
-            if let Some(err) = e {
-                tracing::error!(%err, "Recv Loop Error");
+            } else {
+                // Need to poll to handle PING
+                while let Some(Ok(_)) = receiver.next().await {
+                    // ignore incoming message from anonymous users
+                }
             }
-        } else {
-            // Need to poll to handle PING
-            while let Some(Ok(_)) = receiver.next().await {
-                // ignore incoming message from anonymous users
-            }
-        }
-    }).expect("Task to be created");
+        })
+        .expect("Task to be created");
 
     // if anything fails, abort
     let error = tokio::select! {

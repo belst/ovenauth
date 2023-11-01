@@ -51,29 +51,24 @@ const Dashboard: Component = () => {
       </Show>
       <Title value="Dashboard" />
       <Layout>
-        <div class="rounded-lg shadow bg-base-200 drawer drawer-mobile h-52">
-          <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
-          <div class="flex flex-col items-center justify-center drawer-content">
-            <label for="my-drawer-2" class="mb-4 btn btn-primary drawer-button lg:hidden">open menu</label>
-            <div class="text-xs text-center">
-              <div class="form-control relative flex flex-row">
-                <input ref={input} class="input font-mono box-content input-bordered bordered-r-none rounded-r-none w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
-                <button type="button" onclick={toggletype} class="top-0 rounded-none btn btn-primary">{icon()}</button>
-                <button type="button" onclick={copy} class="top-0 rounded-none btn btn-primary">Copy</button>
-                <button type="button" onclick={reset} class="top-0 rounded-l-none btn btn-primary">{options() ? 'reset' : 'create'}</button>
-              </div>
-            </div>
+        <div class="rounded-box p-4 shadow bg-base-200 grid grid-cols-1 md:grid-cols-2 items-center gap-1">
+
+          <h3 class="text-xl">Stream Token</h3>
+          <div class="join justify-end">
+            <input ref={input} class="input font-mono box-content input-bordered join-item w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
+            <button type="button" onclick={toggletype} class="join-item btn btn-primary">{icon()}</button>
+            <button type="button" onclick={copy} class="join-item btn btn-primary">Copy</button>
+            <button type="button" onclick={reset} class="join-item btn btn-primary">{options() ? 'reset' : 'create'}</button>
           </div>
-          <div class="drawer-side">
-            <label for="my-drawer-2" class="drawer-overlay"></label>
-            <ul class="menu p-4 overflow-y-auto w-80 bg-base-100 text-base-content">
-              <li>
-                <a classList={{ active: true }}>
-                  Stream Token
-                </a>
-              </li>
-            </ul>
+
+          <h3 class="text-xl">7TV.APP Emote Set ID</h3>
+          <div class="join justify-end">
+            <input class="input input-bordered join-item box-content" placeholder="7TV Emoteset ID" value={options()?.emote_id ?? ''} />
+            <button type="button" class="join-item btn btn-primary">Save</button>
           </div>
+
+          <h3 class="text-xl">Public?</h3>
+          <input type="checkbox" class="toggle toggle-primary toggle-lg justify-self-end" checked={options()?.public ?? true} />
         </div>
       </Layout>
     </>

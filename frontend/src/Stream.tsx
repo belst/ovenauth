@@ -1,4 +1,4 @@
-import { useParams, useRouteData } from "@solidjs/router";
+import {useParams, useRouteData } from "@solidjs/router";
 import { Component, Show, createSignal, useContext } from "solid-js";
 import Title from "./Title";
 import player from "./Player";
@@ -21,7 +21,7 @@ const Stream: Component = () => {
     );
     return (
         <Show when={data()}>
-            <Title value={data().username} />
+            <Title value={params.user} />
             <div classList={{
                 'h-screen': theater(),
                 'h-[calc(100dvh-theme(spacing.40))]': !theater(),
@@ -33,8 +33,7 @@ const Stream: Component = () => {
                     'bg-black': theater(),
                 }}>
                     <div use: player={{
-                        user: data().username,
-                        instance: params.user,
+                        user: params.user,
                         autoplay: true,
                         scroll: false
                     }}></div>
@@ -44,7 +43,7 @@ const Stream: Component = () => {
                         <div class="flex flex-row">
                             <div class="avatar placeholder">
                                 <div class="w-24 mask mask-squircle bg-neutral-focus text-neutral-content">
-                                    <span class="text-3xl">{data().username.substring(0, 2)}</span>
+                                    <span class="text-3xl">{params.user.substring(0, 2)}</span>
                                 </div>
                             </div>
                             <h1 class="p-8 text-xl">{data().name ?? 'No Stream title'}</h1>

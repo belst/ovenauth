@@ -9,7 +9,6 @@ import { TheaterContext } from "./store/shownav";
 export interface PlayerProps {
     user: string,
     autoplay: boolean,
-    instance: string,
     scroll?: boolean,
 }
 
@@ -26,9 +25,11 @@ function player(el: Element, props: () => PlayerProps) {
     const endpoint = import.meta.env.VITE_BASEURL;
     const rtcurl = () => `wss://${endpoint}/ws/${props().user}`;
     onMount(() => {
-        const [volume, setVolume] = createSignal(+(localStorage.getItem(`volume_${props().instance}`) || 100));
+        let startvolume = +localStorage.getItem(`volume_${props().user}`);
+        startvolume = Number.isNaN(startvolume) ? 100 : startvolume;
+        const [volume, setVolume] = createSignal(startvolume);
 
-        createEffect(() => localStorage.setItem(`volume_${props().instance}`, volume().toString(10)));
+        createEffect(() => localStorage.setItem(`volume_${props().user}`, volume().toString(10)));
 
         if (props().scroll) {
             const doscroll = () => setTimeout(() => el.scrollIntoView({

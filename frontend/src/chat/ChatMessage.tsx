@@ -69,10 +69,12 @@ const ChatMessage: Component<Props> = (props) => {
     const authService = useService(AuthService);
     const datetime = createMemo(() => DateTime.fromISO(props.message.timestamp));
 
-    const { emoteSet } = useRouteData<typeof StreamData>();
+    const { emoteSet, globalEmoteSet } = useRouteData<typeof StreamData>();
 
     const message = createMemo(() => {
-        return parseEmotes(props.message.content, emoteSet()?.emotes ?? [], authService().user);
+        let emotes = globalEmoteSet()?.emotes ?? [];
+        emotes = emotes.concat(emoteSet()?.emotes ?? []);
+        return parseEmotes(props.message.content, emotes, authService().user);
     });
 
     const repliedMsg = createMemo(() => {
