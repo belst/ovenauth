@@ -1,5 +1,5 @@
 import { Navigate } from "@solidjs/router";
-import { Component, createMemo, createResource, createSignal, Show } from "solid-js";
+import { Component, createEffect, createMemo, createResource, createSignal, on, Show } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
@@ -19,6 +19,13 @@ const Dashboard: Component = () => {
   const reset = () =>
     authService().client.common.reset()
       .then(refetch);
+  
+  const [emoteIdLoading, setEmoteIdLoading] = createSignal(false);
+  const update_emote_id = async () => {
+    setEmoteIdLoading(true);
+    await authService().client.common.set_emote_id(emote_id_input.value.trim());
+    setEmoteIdLoading(false);
+  }
 
   const visibleicon = (
     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
@@ -38,10 +45,11 @@ const Dashboard: Component = () => {
     return inputtype() === 'password' ? visibleicon : visibleofficon;
   });
 
-  let input: HTMLInputElement;
+  let tokeninput: HTMLInputElement;
+  let emote_id_input: HTMLInputElement;
 
   const copy = () => {
-    navigator.clipboard.writeText(input.value);
+    navigator.clipboard.writeText(tokeninput.value);
   }
 
   return (
@@ -51,24 +59,24 @@ const Dashboard: Component = () => {
       </Show>
       <Title value="Dashboard" />
       <Layout>
-        <div class="rounded-box p-4 shadow bg-base-200 grid grid-cols-1 md:grid-cols-2 items-center gap-1">
+        <div class="rounded-box p-4 shadow bg-base-200 grid grid-cols-1 lg:grid-cols-2 items-center gap-1">
 
-          <h3 class="text-xl">Stream Token</h3>
-          <div class="join justify-end">
-            <input ref={input} class="input font-mono box-content input-bordered join-item w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
+          <h3 class="text-xl py-4">Stream Token</h3>
+          <div class="join">
+            <input ref={tokeninput} class="input font-mono box-content input-bordered join-item w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
             <button type="button" onclick={toggletype} class="join-item btn btn-primary">{icon()}</button>
             <button type="button" onclick={copy} class="join-item btn btn-primary">Copy</button>
             <button type="button" onclick={reset} class="join-item btn btn-primary">{options() ? 'reset' : 'create'}</button>
           </div>
 
-          <h3 class="text-xl">7TV.APP Emote Set ID</h3>
-          <div class="join justify-end">
-            <input class="input input-bordered join-item box-content" placeholder="7TV Emoteset ID" value={options()?.emote_id ?? ''} />
-            <button type="button" class="join-item btn btn-primary">Save</button>
+          <h3 class="text-xl py-4">7TV.APP Emote Set ID</h3>
+          <div class="join">
+            <input ref={emote_id_input} class="input input-bordered join-item box-content" placeholder="7TV Emoteset ID" value={options()?.emote_id ?? ''} />
+            <button type="button" onclick={update_emote_id} disabled={emoteIdLoading()} class="join-item btn btn-primary">Save</button>
           </div>
 
-          <h3 class="text-xl">Public?</h3>
-          <input type="checkbox" class="toggle toggle-primary toggle-lg justify-self-end" checked={options()?.public ?? true} />
+          <h3 class="text-xl py-4">Public?</h3>
+          <input type="checkbox" class="toggle toggle-primary toggle-lg" checked={options()?.public ?? true} />
         </div>
       </Layout>
     </>

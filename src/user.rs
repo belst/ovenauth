@@ -17,7 +17,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
-use crate::{error::OvenauthError, options::{PrivateOptions, StreamOptions}};
+use crate::{
+    error::OvenauthError,
+    options::{PrivateOptions, StreamOptions},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserWrapper<T: std::fmt::Debug + Serialize> {
@@ -204,9 +207,34 @@ async fn reset_token(
     Ok(Json(()))
 }
 
+#[derive(Debug, Clone, Deserialize)]
+struct EmoteId {
+    data: String,
+}
+
+async fn update_emote_id(
+    Extension(user): Extension<User>,
+    State(db): State<PgPool>,
+    Json(EmoteId { data }): Json<EmoteId>,
+) -> Result<impl IntoResponse, OvenauthError> {
+    sqlx::query!(
+        r#"--sql
+            update options set emote_id = $1
+            where user_id = $2
+            "#,
+        &data,
+        user.id
+    )
+    .execute(&db)
+    .await?;
+
+    Ok(Json(()))
+}
+
 pub fn routes() -> Router<PgPool> {
     Router::new()
         .route("/reset", post(reset_token))
+        .route("/emote_id", post(update_emote_id))
         .route("/options", get(options))
         .route("/me", get(me))
         .route("/logout", post(logout))

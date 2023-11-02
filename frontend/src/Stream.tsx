@@ -1,5 +1,5 @@
-import {useParams, useRouteData } from "@solidjs/router";
-import { Component, Show, createSignal, useContext } from "solid-js";
+import {useParams, useRouteData, useSearchParams } from "@solidjs/router";
+import { Component, Show, createEffect, createSignal, useContext } from "solid-js";
 import Title from "./Title";
 import player from "./Player";
 import Chat from "./chat/Chat";
@@ -9,11 +9,12 @@ player;
 
 const Stream: Component = () => {
     const params = useParams();
+    const [search, setSearch] = useSearchParams();
     const { streamInfo: data } = useRouteData<typeof StreamData>();
 
     const [theater] = useContext(TheaterContext);
-    const [sidebaropen, setSidebaropen] = createSignal(true);
-
+    const sidebaropen = () => !search.sidebar;
+    const setSidebaropen = (value: boolean) => setSearch({sidebar: value ? '' : '1' });
     const showIcon = (
         <svg fill="currentColor" version="1.1" class="h-6 w-6 -scale-x-100" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
             <path d="M4 16V4H2v12h2zM13 15l-1.5-1.5L14 11H6V9h8l-2.5-2.5L13 5l5 5-5 5z"></path>
@@ -65,7 +66,7 @@ const Stream: Component = () => {
                         "md:top-12": !theater(),
                         "md:top-0": theater(),
                     }}>
-                        <Chat toggleSidebar={() => setSidebaropen(o => !o)} />
+                        <Chat toggleSidebar={() => setSidebaropen(!sidebaropen())} />
                     </div>
                 </Show>
             </div>
