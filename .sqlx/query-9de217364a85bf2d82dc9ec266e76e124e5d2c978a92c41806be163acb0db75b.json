@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "--sql\n            update options\n            set name = coalesce($1, name),\n                emote_id = coalesce($2, emote_id),\n                public = coalesce($3, public),\n                token = case when $4\n                    then MD5(random()::text)\n                    else token\n                    end\n            where user_id = $5\n            returning name, emote_id, public, token\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "emote_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "token",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "9de217364a85bf2d82dc9ec266e76e124e5d2c978a92c41806be163acb0db75b"
+}

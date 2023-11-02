@@ -1,21 +1,21 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select o.token, o.user_id, o.name, o.public from options o where o.user_id = $1",
+  "query": "--sql\n                select\n                    name,\n                    emote_id,\n                    token,\n                    public\n                from options where user_id = $1\n               ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "token",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 1,
-        "name": "user_id",
-        "type_info": "Int4"
+        "name": "emote_id",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "name",
+        "name": "token",
         "type_info": "Text"
       },
       {
@@ -30,11 +30,11 @@
       ]
     },
     "nullable": [
-      false,
-      false,
+      true,
+      true,
       false,
       false
     ]
   },
-  "hash": "2bfa6211e29d64c1e51a76ef45989b3bd0308597120671c5e06d20bf358661d1"
+  "hash": "d6ad48b69ac06e7a93917ccbddcc289e5b17952aadc17b923f4ea9427f55a93a"
 }
