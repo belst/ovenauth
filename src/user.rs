@@ -5,7 +5,7 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, post, put},
+    routing::{get, post},
     Extension, Json, Router,
 };
 use axum_login::{
@@ -19,7 +19,7 @@ use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
 use crate::{
     error::OvenauthError,
-    options::{UpdateStreamOptions, StreamOptions},
+    options::{StreamOptions, UpdateStreamOptions},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,7 +116,7 @@ impl User {
             r#"
                 select * from users
                 where hidden = false
-                and ($1 or id in (select id from options where public))
+                and ($1 or id in (select user_id from options where public))
                 "#,
             show_all
         )
@@ -206,4 +206,3 @@ pub fn routes() -> Router<PgPool> {
         .route("/login", post(login))
         .route("/register", post(register))
 }
-

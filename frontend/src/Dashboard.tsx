@@ -28,6 +28,7 @@ const Dashboard: Component = () => {
   }
 
   const set_visibility = (e: Event) => authService().client.common.set_public((e.currentTarget as HTMLInputElement).checked).then(mutate);
+  const update_title = () => authService().client.common.set_name(title_input.value.trim()).then(mutate);
 
   const visibleicon = (
     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
@@ -49,6 +50,7 @@ const Dashboard: Component = () => {
 
   let tokeninput: HTMLInputElement;
   let emote_id_input: HTMLInputElement;
+  let title_input: HTMLInputElement;
 
   const copy = () => {
     navigator.clipboard.writeText(tokeninput.value);
@@ -75,6 +77,12 @@ const Dashboard: Component = () => {
           <div class="join">
             <input ref={emote_id_input} class="input input-bordered join-item box-content" placeholder="7TV Emoteset ID" value={options()?.emote_id ?? ''} />
             <button type="button" onclick={update_emote_id} disabled={emoteIdLoading()} class="join-item btn btn-primary">Save</button>
+          </div>
+
+          <h3 class="text-xl py-4">Stream Title</h3>
+          <div class="join">
+            <input ref={title_input} class="input input-bordered join-item box-content w-full" placeholder="Stream Title" value={options()?.name ?? ''} />
+            <button type="button" onclick={update_title} class="join-item btn btn-primary">Save</button>
           </div>
 
           <h3 class="text-xl py-4">Public?</h3>

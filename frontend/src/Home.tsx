@@ -9,7 +9,7 @@ import ViewCount from "./ViewCount";
 
 const Home: Component = () => {
     const authService = useService(AuthService);
-    let t;
+    let t: HTMLElement;
 
     return <>
         <Title value="Home" />
@@ -17,7 +17,7 @@ const Home: Component = () => {
             <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-4">
                 <For each={authService().users}>
                     {(user) =>
-                        <div ref={t} class="aspect-video card shadow-xl card-bordered image-full">
+                        <div ref={(e) => t = e} class="aspect-video card shadow-xl card-bordered image-full">
                             <Thumbnail hover={t} interval={10000} name={user.username}></Thumbnail>
                             <div class="justify-end card-body">
                                 <h2 class="card-title">{user.username}</h2>
