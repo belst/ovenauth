@@ -79,12 +79,18 @@ export function ovenAuthClient(endpoint: string, request = fetch) {
       options(): Promise<IStreamOption> {
         return client.get('/user/options')('options');
       },
-      reset(): Promise<void> {
-        return client.post('/user/reset')();
+      reset(): Promise<IStreamOption> {
+        return client.put('/user/options', { token: true })();
       },
-      set_emote_id(emote_id: string): Promise<void> {
-        return client.post('/user/emote_id', { data: emote_id })();
+      set_emote_id(emote_id: string): Promise<IStreamOption> {
+        return client.put('/user/options', { emote_id })();
       },
+      set_public(p: boolean): Promise<IStreamOption> {
+        return client.put('/user/options', { p})();
+      },
+      set_name(name: string): Promise<IStreamOption> {
+        return client.put('/user/options', { name })();
+      }
     },
 
     auth: {

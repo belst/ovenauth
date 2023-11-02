@@ -8,7 +8,7 @@ import Title from "./Title";
 const Dashboard: Component = () => {
 
   const authService = useService(AuthService);
-  const [options, { refetch }] = createResource(() => {
+  const [options, { refetch, mutate }] = createResource(() => {
     return authService().client.common.options();
   });
 
@@ -26,6 +26,8 @@ const Dashboard: Component = () => {
     await authService().client.common.set_emote_id(emote_id_input.value.trim());
     setEmoteIdLoading(false);
   }
+
+  const set_visibility = (e: Event) => authService().client.common.set_public((e.currentTarget as HTMLInputElement).checked).then(mutate);
 
   const visibleicon = (
     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
@@ -76,7 +78,7 @@ const Dashboard: Component = () => {
           </div>
 
           <h3 class="text-xl py-4">Public?</h3>
-          <input type="checkbox" class="toggle toggle-primary toggle-lg" checked={options()?.public ?? true} />
+          <input type="checkbox" class="toggle toggle-primary toggle-lg" onchange={set_visibility} checked={options()?.public ?? true} />
         </div>
       </Layout>
     </>

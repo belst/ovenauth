@@ -5,7 +5,7 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{get, post, put},
     Extension, Json, Router,
 };
 use axum_login::{
@@ -19,7 +19,7 @@ use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
 
 use crate::{
     error::OvenauthError,
-    options::{PrivateOptions, StreamOptions},
+    options::{UpdateStreamOptions, StreamOptions},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -188,54 +188,17 @@ async fn options(
     Ok(Json(json!({ "options": options })))
 }
 
-async fn reset_token(
+async fn update_options(
     Extension(user): Extension<User>,
     State(db): State<PgPool>,
+    Json(options): Json<UpdateStreamOptions>,
 ) -> Result<impl IntoResponse, OvenauthError> {
-    let q = sqlx::query!(
-        "
-        insert into options
-            (user_id, token)
-        values
-            ($1, MD5(random()::text))
-        on conflict (user_id) do update
-        set token = MD5(random()::text)",
-        user.id
-    );
-
-    q.execute(&db).await?;
-    Ok(Json(()))
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct EmoteId {
-    data: String,
-}
-
-async fn update_emote_id(
-    Extension(user): Extension<User>,
-    State(db): State<PgPool>,
-    Json(EmoteId { data }): Json<EmoteId>,
-) -> Result<impl IntoResponse, OvenauthError> {
-    sqlx::query!(
-        r#"--sql
-            update options set emote_id = $1
-            where user_id = $2
-            "#,
-        &data,
-        user.id
-    )
-    .execute(&db)
-    .await?;
-
-    Ok(Json(()))
+    Ok(Json(options.update(user.id, &db).await?))
 }
 
 pub fn routes() -> Router<PgPool> {
     Router::new()
-        .route("/reset", post(reset_token))
-        .route("/emote_id", post(update_emote_id))
-        .route("/options", get(options))
+        .route("/options", get(options).put(update_options))
         .route("/me", get(me))
         .route("/logout", post(logout))
         .route_layer(RequireAuthorizationLayer::<i32, User>::login())
@@ -243,3 +206,4 @@ pub fn routes() -> Router<PgPool> {
         .route("/login", post(login))
         .route("/register", post(register))
 }
+
