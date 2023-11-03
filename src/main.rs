@@ -1,12 +1,13 @@
-use axum::Router;
+use axum::{Router, Extension};
 use axum_login::{
     axum_sessions::{async_session::MemoryStore, SessionLayer},
     AuthLayer, PostgresStore,
 };
 use dotenvy::dotenv;
+use pubsub::PubSub;
 use rand::Rng;
 use sqlx::PgPool;
-use std::{env, net::IpAddr};
+use std::{env, net::IpAddr, sync::Arc};
 use tower_http::{
     cors::CorsLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -21,6 +22,7 @@ mod options;
 mod stream;
 mod user;
 mod webhook;
+mod pubsub;
 
 async fn connect_to_db(db_url: &str) -> sqlx::Result<PgPool> {
     let db_pool = PgPool::connect(db_url).await?;
@@ -71,6 +73,7 @@ async fn main() -> anyhow::Result<()> {
     let session_layer = SessionLayer::new(session_store, &secret).with_secure(false);
     let auth_layer = AuthLayer::new(user_store, &secret);
     let cors = CorsLayer::very_permissive();
+    let pubsub = Extension(PubSub::default());
 
     tracing::info!("Starting server on {}:{}", host, port);
     let app: Router = Router::new()
@@ -78,6 +81,8 @@ async fn main() -> anyhow::Result<()> {
         .nest("/user", user::routes())
         .nest("/stream", stream::routes())
         .nest("/chat", chat::routes())
+        .nest("/pubsub", pubsub::routes())
+        .layer(pubsub)
         .layer(auth_layer)
         .layer(session_layer)
         .layer(cors)
