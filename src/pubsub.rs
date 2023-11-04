@@ -3,15 +3,16 @@ use axum::extract::{State, WebSocketUpgrade};
 use axum::response::Response;
 use axum::routing::get;
 use axum::{Extension, Router};
-use futures_util::{StreamExt, SinkExt};
-use futures_util::future::select_all;
+use futures_util::{StreamExt, SinkExt, Stream, pin_mut, Future};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+use std::task::Poll;
 use tokio::sync::broadcast::{channel, Sender};
-use tokio::sync::{Mutex, Semaphore};
+use tokio::sync::Mutex;
 use tokio_stream::wrappers::BroadcastStream;
 
 use crate::user::User;
@@ -31,6 +32,7 @@ impl Deref for PubSub {
     }
 }
 
+#[derive(Debug)]
 pub struct Subscription {
     recv: BroadcastStream<String>,
     channel_name: String,
@@ -89,6 +91,12 @@ impl Subscription {
         }
     }
 }
+// not possible atm, since unsubscribe takes ownership
+//impl Drop for Subscription {
+//    fn drop(&mut self) {
+//        self.unsubscribe();
+//    }
+//}
 
 #[derive(Debug, Deserialize)]
 enum IncomingMessage {
@@ -102,14 +110,38 @@ struct OutgoingMessage {
     msg: String,
 }
 
+#[derive(Debug, Default, Clone)]
+struct Subscriptions(Arc<Mutex<HashMap<String, Subscription>>>);
+
+impl Stream for Subscriptions {
+    type Item = Result<String, BroadcastStreamRecvError>;
+
+    fn poll_next(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
+        let lock = self.0.lock();
+        pin_mut!(lock);
+        let mut guard = match lock.poll(cx) {
+            Poll::Ready(g) => g,
+            Poll::Pending => return Poll::Pending,
+        };
+
+        let item = guard.values_mut().find_map(|f| match f.poll_next_unpin(cx) {
+            Poll::Ready(v) => Some(v),
+            Poll::Pending => None,
+        });
+        
+        match item {
+            Some(v) => Poll::Ready(v),
+            None => Poll::Pending,
+        }
+
+    }
+}
+
 async fn ws_connection(s: WebSocket, pool: PgPool, user: Option<User>, pubsub: PubSub) {
     let (mut tx, mut rx) = s.split();
 
-    let subscriptions: Arc<Mutex<HashMap<String, Subscription>>> =
-        Arc::new(Mutex::new(HashMap::new()));
+    let mut subscriptions: Subscriptions = Default::default();
     let s = subscriptions.clone();
-    let sem = Arc::new(Semaphore::new(0));
-    let sem_prime = sem.clone();
     let mut recv_task = tokio::spawn(async move {
         // TODO Ping Pong
         while let Some(Ok(Message::Text(msg))) = rx.next().await {
@@ -118,17 +150,15 @@ async fn ws_connection(s: WebSocket, pool: PgPool, user: Option<User>, pubsub: P
             };
             match msg {
                 IncomingMessage::Subscribe { channel_name } => {
-                    let mut l = s.lock().await;
+                    let mut l = s.0.lock().await;
                     if !l.contains_key(&channel_name) {
                         let sub = pubsub.subscribe(&channel_name).await;
                         l.insert(channel_name, sub);
-                        sem.add_permits(1);
                     }
                 }
                 IncomingMessage::Unsubscribe { channel_name } => {
-                    if let Some(s) = s.lock().await.remove(&channel_name) {
+                    if let Some(s) = s.0.lock().await.remove(&channel_name) {
                         s.unsubscribe().await;
-                        sem.acquire().await.expect("semaphore not to be closed").forget();
                     }
                 }
             }
@@ -136,15 +166,10 @@ async fn ws_connection(s: WebSocket, pool: PgPool, user: Option<User>, pubsub: P
     });
 
     let mut send_task = tokio::spawn(async move {
-        loop {
-            // Make sure we have at least 1 subscription
-            let _acq = sem_prime.acquire().await.expect("semaphore not to be closed");
-            let (val, n, v) = select_all(subscriptions.lock().await.values_mut().map(|s| s.next())).await;
-
-            match val {
-                Some(Ok(v)) => { tx.send(Message::Text(v)).await.ok(); },
-                Some(Err(e)) => {},
-                None => { break; }
+        while let Some(v) = subscriptions.next().await {
+            match v{
+                Ok(v) => { tx.send(Message::Text(v)).await.ok(); },
+                Err(e) => {},
             }
         }
     });
