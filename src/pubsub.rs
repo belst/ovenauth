@@ -3,16 +3,16 @@ use axum::extract::{State, WebSocketUpgrade};
 use axum::response::Response;
 use axum::routing::get;
 use axum::{Extension, Router};
-use futures_util::{StreamExt, SinkExt, Stream, pin_mut, Future};
+use futures_util::{pin_mut, Future, SinkExt, Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::task::Poll;
 use tokio::sync::broadcast::{channel, Sender};
 use tokio::sync::Mutex;
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_stream::wrappers::BroadcastStream;
 
 use crate::user::User;
@@ -114,9 +114,12 @@ struct OutgoingMessage {
 struct Subscriptions(Arc<Mutex<HashMap<String, Subscription>>>);
 
 impl Stream for Subscriptions {
-    type Item = Result<String, BroadcastStreamRecvError>;
+    type Item = Result<OutgoingMessage, BroadcastStreamRecvError>;
 
-    fn poll_next(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
         let lock = self.0.lock();
         pin_mut!(lock);
         let mut guard = match lock.poll(cx) {
@@ -124,16 +127,22 @@ impl Stream for Subscriptions {
             Poll::Pending => return Poll::Pending,
         };
 
-        let item = guard.values_mut().find_map(|f| match f.poll_next_unpin(cx) {
-            Poll::Ready(v) => Some(v),
-            Poll::Pending => None,
-        });
-        
+        let item = guard
+            .iter_mut()
+            .find_map(|(k, v)| match v.poll_next_unpin(cx) {
+                Poll::Ready(o) => Some(o.map(|r| {
+                    r.map(|s| OutgoingMessage {
+                        channel_name: k.to_owned(),
+                        msg: s,
+                    })
+                })),
+                Poll::Pending => None,
+            });
+
         match item {
             Some(v) => Poll::Ready(v),
             None => Poll::Pending,
         }
-
     }
 }
 
@@ -167,9 +176,15 @@ async fn ws_connection(s: WebSocket, pool: PgPool, user: Option<User>, pubsub: P
 
     let mut send_task = tokio::spawn(async move {
         while let Some(v) = subscriptions.next().await {
-            match v{
-                Ok(v) => { tx.send(Message::Text(v)).await.ok(); },
-                Err(e) => {},
+            match v {
+                Ok(v) => {
+                    tx.send(Message::Text(
+                        serde_json::to_string(&v).expect("serialization to work"),
+                    ))
+                    .await
+                    .ok();
+                }
+                Err(e) => {}
             }
         }
     });
@@ -178,7 +193,6 @@ async fn ws_connection(s: WebSocket, pool: PgPool, user: Option<User>, pubsub: P
         _ = (&mut recv_task) => send_task.abort(),
         _ = (&mut send_task) => recv_task.abort(),
     };
-
 }
 
 async fn handler(
@@ -193,3 +207,4 @@ async fn handler(
 pub fn routes() -> Router<PgPool> {
     Router::new().route("/", get(handler))
 }
+
