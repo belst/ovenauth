@@ -21,6 +21,7 @@ mod options;
 mod stream;
 mod user;
 mod webhook;
+mod notifier;
 
 async fn connect_to_db(db_url: &str) -> sqlx::Result<PgPool> {
     let db_pool = PgPool::connect(db_url).await?;

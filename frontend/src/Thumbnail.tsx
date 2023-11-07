@@ -10,7 +10,7 @@ const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElemen
     const fetcher = async (name: string) => {
         const res = await fetch(`${endpoint}/thumbs/${name}/thumb.png?t=${Date.now()}`);
         if (!res.ok) {
-            throw new Error(res.statusText);
+            return fbpx;
         }
         return URL.createObjectURL(await res.blob());
     }
@@ -67,9 +67,7 @@ const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElemen
 
     return (
         <figure class="aspect-video">
-            <ErrorBoundary fallback={<img class="bg-gradient-to-tl from-neutral-content to-neutral" src={fbpx} />}>
-                <img class="bg-gradient-to-tl from-neutral-content to-neutral" src={img()} />
-            </ErrorBoundary>
+            <img class="bg-gradient-to-tl from-neutral-content to-neutral" src={img()} />
         </figure>
     )
 }
