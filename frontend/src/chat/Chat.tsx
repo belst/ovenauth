@@ -91,6 +91,12 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const [replying, setReplying] = createSignal<boolean | string>(false);
     const replyto = () => chatState.find(m => m.message_id === replying());
 
+    createEffect(() => {
+        if (replying()) {
+            input().focus();
+        }
+    });
+
     function submitChat(e: SubmitEvent, user: IUser) {
         e.preventDefault();
         const target = input();
@@ -125,7 +131,6 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
             props.toggleSidebar();
         }
     }
-
 
     const standalone = () => location.pathname.startsWith('/chat');
 
