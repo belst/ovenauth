@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Result};
 
 #[derive(Debug, Serialize, Default)]
@@ -64,6 +64,20 @@ impl StreamOptions {
                     public
                 from options where user_id = $1
                "#,
+            user_id
+        )
+        .fetch_one(pool)
+        .await?)
+    }
+
+    pub async fn create(user_id: i32, pool: &PgPool) -> Result<Self> {
+        Ok(sqlx::query_as!(
+            Self,
+            r#"--sql
+            insert into options (user_id, token)
+            values ($1, MD5(random()::text))
+            returning name, emote_id, token, public
+            "#,
             user_id
         )
         .fetch_one(pool)
