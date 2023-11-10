@@ -1,5 +1,5 @@
 import { Navigate } from "@solidjs/router";
-import { Component, createEffect, createMemo, createResource, createSignal, on, Show } from "solid-js";
+import { Component, createMemo, createResource, createSignal, Show } from "solid-js";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";

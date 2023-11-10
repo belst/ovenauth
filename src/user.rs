@@ -107,6 +107,8 @@ impl User {
         .fetch_one(db)
         .await?;
 
+        let _ = StreamOptions::create(user.id, db).await?;
+
         Ok(user)
     }
 

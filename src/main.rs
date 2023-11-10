@@ -1,4 +1,4 @@
-use axum::{Router, Extension};
+use axum::{Extension, Router};
 use axum_login::{
     axum_sessions::{async_session::MemoryStore, SessionLayer},
     AuthLayer, PostgresStore,
@@ -7,7 +7,7 @@ use dotenvy::dotenv;
 use pubsub::PubSub;
 use rand::Rng;
 use sqlx::PgPool;
-use std::{env, net::IpAddr, sync::Arc};
+use std::{env, net::IpAddr};
 use tower_http::{
     cors::CorsLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -19,10 +19,10 @@ use user::User;
 mod chat;
 mod error;
 mod options;
+mod pubsub;
 mod stream;
 mod user;
 mod webhook;
-mod pubsub;
 
 async fn connect_to_db(db_url: &str) -> sqlx::Result<PgPool> {
     let db_pool = PgPool::connect(db_url).await?;

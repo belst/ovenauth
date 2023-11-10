@@ -1,4 +1,4 @@
-import { Component, createResource, onCleanup, onMount, Show } from "solid-js";
+import { Component, createResource, onCleanup, onMount, Suspense } from "solid-js";
 import { useService } from "solid-services";
 import { StatService } from "./store/StatService";
 
@@ -15,7 +15,7 @@ const ViewCount: Component<ViewCountProps> = (props) => {
     const [vc, { refetch }] = createResource(() => props.name, fetcher);
 
     const viewers = () => {
-        let count = vc();
+        let count = vc.latest;
         return count < 0 ? 'Offline' : count === 1 ? count + ' Viewer' : count + ' Viewers';
     };
 
@@ -27,9 +27,9 @@ const ViewCount: Component<ViewCountProps> = (props) => {
     });
 
     return (<h5>
-        <Show when={!vc.loading || typeof vc() === 'number'} fallback={'Loading....'}>
+        <Suspense fallback={'Loading....'}>
             {viewers()}
-        </Show>
+        </Suspense>
     </h5>);
 }
 

@@ -1,5 +1,5 @@
-import {useParams, useRouteData, useSearchParams } from "@solidjs/router";
-import { Component, Show, createEffect, createSignal, useContext } from "solid-js";
+import { useParams, useRouteData, useSearchParams } from "@solidjs/router";
+import { Component, Show, Suspense, useContext } from "solid-js";
 import Title from "./Title";
 import player from "./Player";
 import Chat from "./chat/Chat";
@@ -14,14 +14,14 @@ const Stream: Component = () => {
 
     const [theater] = useContext(TheaterContext);
     const sidebaropen = () => !search.sidebar;
-    const setSidebaropen = (value: boolean) => setSearch({sidebar: value ? '' : '1' });
+    const setSidebaropen = (value: boolean) => setSearch({ sidebar: value ? '' : '1' });
     const showIcon = (
         <svg fill="currentColor" version="1.1" class="h-6 w-6 -scale-x-100" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
             <path d="M4 16V4H2v12h2zM13 15l-1.5-1.5L14 11H6V9h8l-2.5-2.5L13 5l5 5-5 5z"></path>
         </svg>
     );
     return (
-        <Show when={data()}>
+        <Suspense>
             <Title value={params.user} />
             <div classList={{
                 'h-screen': theater(),
@@ -47,7 +47,7 @@ const Stream: Component = () => {
                                     <span class="text-3xl">{params.user.substring(0, 2)}</span>
                                 </div>
                             </div>
-                            <h1 class="p-8 text-xl">{data().name ?? 'No Stream title'}</h1>
+                            <h1 class="p-8 text-xl">{data.latest.name ?? 'No Stream title'}</h1>
                         </div>
                     </div>
                 </Show>
@@ -70,7 +70,7 @@ const Stream: Component = () => {
                     </div>
                 </Show>
             </div>
-        </Show>
+        </Suspense>
     );
 };
 
