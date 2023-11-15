@@ -47,7 +47,7 @@ const Stream: Component = () => {
                                     <span class="text-3xl">{params.user.substring(0, 2)}</span>
                                 </div>
                             </div>
-                            <h1 class="p-8 text-xl">{data.latest.name ?? 'No Stream title'}</h1>
+                            <h1 class="p-8 text-xl">{data.latest?.name ?? 'No Stream title'}</h1>
                         </div>
                     </div>
                 </Show>

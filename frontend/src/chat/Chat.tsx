@@ -1,6 +1,6 @@
 import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { useNavigate, useParams, useLocation } from '@solidjs/router';
+import { useNavigate, useParams, useLocation, useRouteData } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import type { IncomingMessage, MessagePosition } from './ChatMessage';
@@ -8,6 +8,7 @@ import ChatMessage from './ChatMessage';
 import { IUser } from '../types/user.interface';
 import color from '../utils/colors';
 import { TheaterContext } from '../store/shownav';
+import StreamData from '../Stream.data';
 
 export type JoinMessage = {
     type: "join",
@@ -40,6 +41,7 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const [roomState, setRoomState] = createStore<string[]>([]);
     const [loading, setLoading] = createSignal(true);
 
+    const { emoteSet, globalEmoteSet } = useRouteData<typeof StreamData>();
     const [theater] = useContext(TheaterContext);
 
     const [ws, setWs] = createSignal<WebSocket>();
@@ -140,6 +142,71 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
         'h-[calc(100dvh-56.2vw-theme(spacing.12))]': !theater()
     });
 
+    const [inputVal, setInputVal] = createSignal('');
+    const [caretPosition, setCaretPosition] = createSignal(0);
+    const [showAutocomplete, setShowAutocomplete] = createSignal(false);
+
+    const checkCaret = (e) => {
+        setCaretPosition(e.currentTarget.selectionStart);
+    };
+
+    createEffect(() => {
+        if (!input()) {
+            return;
+        }
+        input().addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === "Tab") {
+                e.preventDefault();
+                setShowAutocomplete(true);
+            }
+        });
+        input().addEventListener('keypress', checkCaret); // Every character written
+        input().addEventListener('mousedown', checkCaret); // Click down
+        input().addEventListener('touchstart', checkCaret); // Mobile
+        input().addEventListener('input', checkCaret); // Other input events
+        input().addEventListener('paste', checkCaret); // Clipboard actions
+        input().addEventListener('cut', checkCaret);
+        input().addEventListener('mousemove', checkCaret); // Selection, dragging text
+        input().addEventListener('select', checkCaret); // Some browsers support this event
+        input().addEventListener('selectstart', checkCaret); // Some browsers support this event
+    });
+
+    const inputHandler = (e: { currentTarget: { value: any; selectionStart: any; }; }) => {
+        setInputVal(e.currentTarget.value);
+        setCaretPosition(e.currentTarget.selectionStart);
+    }
+
+    const filteredGlobal = () => {
+        const inputv = inputVal().substring(0, caretPosition());
+        const words = inputv.split(/\s+/);
+        const w = words.length > 0 ? words[words.length - 1].toLowerCase() : "";
+
+        return (globalEmoteSet().emotes ?? []).filter(e => e.name.toLowerCase().startsWith(w));
+    };
+
+    const filteredCustom = () => {
+        const inputv = inputVal().substring(0, caretPosition());
+        const words = inputv.split(/\s+/);
+        const w = words.length > 0 ? words[words.length - 1].toLowerCase() : "";
+
+        return (emoteSet().emotes ?? []).filter(e => e.name.toLowerCase().startsWith(w));
+    };
+
+    const AutocompleteList = () => {
+        return (<>
+            <ul class="menu bg-base-200 w-56 rounded-box">
+                <For each={filteredGlobal()}>
+                    {e => <li><a>{e.name}</a></li>}
+                </For>
+            </ul>
+            <ul class="menu bg-base-200 w-56 rounded-box">
+                <For each={filteredCustom()}>
+                    {e => <li><a>{e.name}</a></li>}
+                </For>
+            </ul>
+        </>);
+    };
+
     return (
         <div class="flex flex-col md:h-full justify-end py-1 border-l border-l-neutral-800" classList={style()}>
             <div class="flex justify-between p-2 text-lg border-b border-b-neutral-700">
@@ -175,7 +242,10 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
                                     </div>
                                 )}
                             </Show>
-                            <input ref={setInput} type="text" placeholder="Chat here" class="join-item input input-bordered w-full max-w-xs" />
+                            <Show when={showAutocomplete()}>
+                                <AutocompleteList />
+                            </Show>
+                            <input ref={setInput} onInput={inputHandler} type="text" placeholder="Chat here" class="join-item input input-bordered w-full max-w-xs" />
                         </div>
                         <input class="btn self-end" type="submit" value={replying() ? 'Reply' : 'Chat'} />
                     </form>)
