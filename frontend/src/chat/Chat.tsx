@@ -9,6 +9,7 @@ import { IUser } from '../types/user.interface';
 import color from '../utils/colors';
 import { TheaterContext } from '../store/shownav';
 import StreamData from '../Stream.data';
+import Autocomplete from './Autocomplete';
 
 export type JoinMessage = {
     type: "join",
@@ -107,7 +108,6 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
         if (!content.length) return;
         ws()?.send(JSON.stringify({ author: user.username, content: target.value, reply_to: replying() || undefined }));
         target.value = '';
-        setInputVal('');
         setReplying(false);
     }
 
@@ -142,141 +142,6 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
         'h-[calc(100dvh-56.2vw)]': theater(),
         'h-[calc(100dvh-56.2vw-theme(spacing.12))]': !theater()
     });
-
-    const [inputVal, setInputVal] = createSignal('');
-    const [showAutocomplete, setShowAutocomplete] = createSignal(false);
-    const [selectedEmoteName, setSelectedEmoteName] = createSignal('');
-
-    const [caretPosition, setCaretPosition] = createSignal(0);
-    const checkCaret = (e: any) => {
-        setCaretPosition(e.currentTarget.selectionStart);
-    };
-    const [selectedEmoteIndex, setSelectedEmoteIndex] = createSignal(0);
-
-    const setEmote = () => {
-        const inref = input();
-        inref.value = inref.value.substring(0, caretPosition() - w().length) + selectedEmoteName() + ' ' + inref.value.substring(caretPosition());
-        setShowAutocomplete(false);
-        setSelectedEmoteName('');
-    };
-
-    createEffect(() => {
-        if (selectedEmoteIndex() >= 0 && selectedEmoteIndex() < filteredCustom().length + filteredGlobal().length - 1) {
-            let index = selectedEmoteIndex();
-            if (index < filteredGlobal().length) {
-                setSelectedEmoteName(filteredGlobal()[index].name);
-            } else {
-                index = index - filteredGlobal().length;
-                setSelectedEmoteName(filteredCustom()[index].name);
-            }
-        }
-    });
-
-    createEffect(() => {
-        if (showAutocomplete() && (filteredGlobal().length + filteredCustom().length <= 0)) {
-            setShowAutocomplete(false);
-        }
-    });
-
-    createEffect(() => {
-        const inref = input();
-        if (!inref) {
-            return;
-        }
-        inref.addEventListener('keydown', (e: KeyboardEvent) => {
-            if (e.key === "Tab") {
-                e.preventDefault();
-                if (!showAutocomplete()) {
-                    setShowAutocomplete(true);
-                    setSelectedEmoteIndex(0);
-                    return;
-                }
-                if (selectedEmoteName().length > 0) {
-                    setEmote();
-                }
-            }
-            if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setSelectedEmoteIndex(old => Math.min(filteredGlobal().length + filteredCustom().length - 1, old + 1));
-            }
-            if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setSelectedEmoteIndex(old => Math.max(0, (old - 1)));
-            }
-            if (e.key === "Enter" && showAutocomplete()) {
-                e.preventDefault();
-                setEmote();
-            }
-        });
-        inref.addEventListener('keypress', checkCaret); // Every character written
-        inref.addEventListener('mousedown', checkCaret); // Click down
-        inref.addEventListener('touchstart', checkCaret); // Mobile
-        inref.addEventListener('input', checkCaret); // Other input events
-        inref.addEventListener('paste', checkCaret); // Clipboard actions
-        inref.addEventListener('cut', checkCaret);
-        inref.addEventListener('mousemove', checkCaret); // Selection, dragging text
-        inref.addEventListener('select', checkCaret); // Some browsers support this event
-        inref.addEventListener('selectstart', checkCaret); // Some browsers support this event
-    });
-
-    const inputHandler = (e: { currentTarget: { value: any; selectionStart: any; }; }) => {
-        setInputVal(e.currentTarget.value);
-        setCaretPosition(e.currentTarget.selectionStart);
-    }
-
-    const w = () => {
-        const inputv = inputVal().substring(0, caretPosition());
-        const words = inputv.split(/\s+/);
-        const w = words.length > 0 ? words[words.length - 1].toLowerCase() : "";
-        return w;
-    }
-
-    const filteredGlobal = createMemo(() => {
-        const word = w();
-
-        return (globalEmoteSet()?.emotes ?? []).filter(e => e.name.toLowerCase().startsWith(word));
-    });
-
-    const filteredCustom = createMemo(() => {
-        const word = w();
-
-        return (emoteSet()?.emotes ?? []).filter(e => e.name.toLowerCase().startsWith(word));
-    });
-
-    const AutocompleteList = () => {
-        return (<>
-            <Show when={filteredGlobal().length > 0}>
-                <ul class="menu bg-base-200 w-56 rounded-box">
-                    <For each={filteredGlobal()}>
-                        {(e, i) => <li>
-                            <a classList={{
-                                'active': i() === selectedEmoteIndex()
-                            }}
-                                onclick={_ => {
-                                    setSelectedEmoteName(e.name);
-                                    setEmote();
-                                }}>{e.name}</a>
-                        </li>}
-                    </For>
-                </ul>
-            </Show>
-            <Show when={filteredCustom().length > 0}>
-                <ul class="menu bg-base-200 w-56 rounded-box">
-                    <For each={filteredCustom()}>
-                        {(e, i) => <li>
-                            <a classList={{
-                                'active': i() === (selectedEmoteIndex() - filteredGlobal().length)
-                            }}
-                                onclick={_ => {
-                                    setSelectedEmoteName(e.name);
-                                    setEmote();
-                                }}>{e.name}</a>
-                        </li>}
-                    </For>
-                </ul>
-            </Show>
-        </>);
-    };
 
     return (
         <div class="flex flex-col md:h-full justify-end py-1 border-l border-l-neutral-800" classList={style()}>
@@ -314,12 +179,8 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
                                 )}
                             </Show>
                             <div class="relative">
-                                <Show when={showAutocomplete()}>
-                                    <div class="absolute top-0 -translate-y-full">
-                                        <AutocompleteList />
-                                    </div>
-                                </Show>
-                                <input ref={setInput} onInput={inputHandler} type="text" placeholder="Chat here" class="relative join-item input input-bordered w-full max-w-xs" />
+                                <Autocomplete input={input()} globalEmotes={globalEmoteSet()?.emotes ?? []} customEmotes={emoteSet()?.emotes ?? []} />
+                                <input ref={setInput} type="text" placeholder="Chat here" class="relative join-item input input-bordered w-full max-w-xs" />
                             </div>
                         </div>
                         <input class="btn self-end" type="submit" value={replying() ? 'Reply' : 'Chat'} />

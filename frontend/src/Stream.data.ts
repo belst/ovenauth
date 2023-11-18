@@ -37,7 +37,7 @@ type EmoteData = {
   }
 };
 
-type Emote = {
+export type Emote = {
   id: string,
   name: string,
   flags: number,
