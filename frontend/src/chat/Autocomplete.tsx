@@ -132,7 +132,7 @@ const Autocomplete: Component<Props> = (props) => {
 
     const EmoteEntry = (props: { active?: boolean; index: number; emote: Emote; }) => {
         return (<li>
-            <a
+            <a  class="break-all"
                 classList={{
                     'active': props.active
                 }}
@@ -150,14 +150,14 @@ const Autocomplete: Component<Props> = (props) => {
         <Show when={showAutocomplete()}>
             <div class="absolute top-0 -translate-y-full">
                 <Show when={filteredGlobal().length > 0}>
-                    <ul class="menu bg-base-200 w-56 rounded-box">
+                    <ul class="menu bg-base-200 w-56 rounded-box break-words">
                         <For each={filteredGlobal()}>
                             {(e, i) => <EmoteEntry active={i() === selectedEmoteIndex()} emote={e} index={i()} />}
                         </For>
                     </ul>
                 </Show>
                 <Show when={filteredCustom().length > 0}>
-                    <ul class="menu bg-base-200 w-56 rounded-box">
+                    <ul class="menu bg-base-200 w-56 rounded-box break-words">
                         <For each={filteredCustom()}>
                             {(e, i) => <EmoteEntry active={i() === (selectedEmoteIndex() - filteredGlobal().length)} emote={e} index={i() + filteredGlobal().length} />}
                         </For>
