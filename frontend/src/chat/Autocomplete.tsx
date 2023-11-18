@@ -1,4 +1,4 @@
-import { Component, For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { Component, For, JSX, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { Emote } from "../Stream.data";
 
 type Props = {
@@ -117,36 +117,32 @@ const Autocomplete: Component<Props> = (props) => {
         });
     });
 
+    const EmoteEntry = (props: { active?: boolean; index: number; emote: Emote; }) => {
+        return (<li>
+            <a classList={{
+                'active': props.active
+            }}
+                onclick={_ => {
+                    setSelectedEmoteIndex(props.index);
+                    setEmote();
+                }}>{props.emote.name}</a>
+        </li>);
+    }
+
     return (
         <Show when={showAutocomplete()}>
             <div class="absolute top-0 -translate-y-full">
                 <Show when={filteredGlobal().length > 0}>
                     <ul class="menu bg-base-200 w-56 rounded-box">
                         <For each={filteredGlobal()}>
-                            {(e, i) => <li>
-                                <a classList={{
-                                    'active': i() === selectedEmoteIndex()
-                                }}
-                                    onclick={_ => {
-                                        setSelectedEmoteIndex(i());
-                                        setEmote();
-                                    }}>{e.name}</a>
-                            </li>}
+                            {(e, i) => <EmoteEntry active={i() === selectedEmoteIndex()} emote={e} index={i()} />}
                         </For>
                     </ul>
                 </Show>
                 <Show when={filteredCustom().length > 0}>
                     <ul class="menu bg-base-200 w-56 rounded-box">
                         <For each={filteredCustom()}>
-                            {(e, i) => <li>
-                                <a classList={{
-                                    'active': i() === (selectedEmoteIndex() - filteredGlobal().length)
-                                }}
-                                    onclick={_ => {
-                                        setSelectedEmoteIndex(i());
-                                        setEmote();
-                                    }}>{e.name}</a>
-                            </li>}
+                            {(e, i) => <EmoteEntry active={i() === (selectedEmoteIndex() - filteredGlobal().length)} emote={e} index={i() + filteredGlobal().length} />}
                         </For>
                     </ul>
                 </Show>
