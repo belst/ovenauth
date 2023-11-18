@@ -128,11 +128,11 @@ const Autocomplete: Component<Props> = (props) => {
                     decoding="async" />
             </div>
         );
-    }
+    };
 
     const EmoteEntry = (props: { active?: boolean; index: number; emote: Emote; }) => {
-        return (<li>
-            <a  class="break-all"
+        let el = <li>
+            <a class="break-all"
                 classList={{
                     'active': props.active
                 }}
@@ -143,12 +143,23 @@ const Autocomplete: Component<Props> = (props) => {
             >
                 <EmoteImg emote={props.emote} /> {props.emote.name}
             </a>
-        </li>);
-    }
+        </li> as HTMLLIElement;
+
+        createEffect(() => {
+            if (props.active) {
+                if (typeof (el as any).scrollIntoViewIfNeeded !== 'undefined') {
+                    (el as any).scrollIntoViewIfNeeded({ behavior: 'smooth', block: 'center' });
+                } else {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+        return el;
+    };
 
     return (
         <Show when={showAutocomplete()}>
-            <div class="absolute top-0 -translate-y-full">
+            <div class="absolute top-0 -translate-y-full max-h-[80dvh] overflow-y-auto overflow-x-hidden">
                 <Show when={filteredGlobal().length > 0}>
                     <ul class="menu bg-base-200 w-56 rounded-box break-words">
                         <For each={filteredGlobal()}>
