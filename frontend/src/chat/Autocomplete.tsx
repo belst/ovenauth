@@ -24,12 +24,12 @@ const Autocomplete: Component<Props> = (props) => {
         setCaretPosition(e.currentTarget.selectionStart);
     };
 
-    const w = () => {
+    const w = createMemo(() => {
         const inputv = inputVal().substring(0, caretPosition());
         const words = inputv.split(/\s+/);
         const w = words.length > 0 ? words[words.length - 1].toLowerCase() : "";
         return w;
-    }
+    });
     const filteredGlobal = createMemo(() => {
         const word = w();
 
@@ -117,15 +117,32 @@ const Autocomplete: Component<Props> = (props) => {
         });
     });
 
+    const EmoteImg = (props: { emote: Emote }) => {
+        return (
+            <div class="inline-grid align-middle m-[-theme(spacing.2)] mx-0 overflow-clip">
+                <img srcset={`${props.emote.data.host.url}/1x.webp 1x, ${props.emote.data.host.url}/2x.webp 2x, ${props.emote.data.host.url}/3x.webp 3x`}
+                    class="font-extrabold object-contain m-auto border-0 max-w-full"
+                    style="grid-column: 1; grid-row: 1;"
+                    alt={props.emote.name}
+                    loading="lazy"
+                    decoding="async" />
+            </div>
+        );
+    }
+
     const EmoteEntry = (props: { active?: boolean; index: number; emote: Emote; }) => {
         return (<li>
-            <a classList={{
-                'active': props.active
-            }}
+            <a
+                classList={{
+                    'active': props.active
+                }}
                 onclick={_ => {
                     setSelectedEmoteIndex(props.index);
                     setEmote();
-                }}>{props.emote.name}</a>
+                }}
+            >
+                <EmoteImg emote={props.emote} /> {props.emote.name}
+            </a>
         </li>);
     }
 
