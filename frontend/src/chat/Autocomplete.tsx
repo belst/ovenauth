@@ -57,6 +57,7 @@ const Autocomplete: Component<Props> = (props) => {
     const setEmote = () => {
         setInputVal(inputVal().substring(0, caretPosition() - w().length) + selectedEmoteName() + ' ' + inputVal().substring(caretPosition()))
         setShowAutocomplete(false);
+        setSelectedEmoteIndex(-1);
     };
 
     const keyDownHandler = (e: KeyboardEvent) => {
