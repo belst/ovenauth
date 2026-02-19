@@ -1,19 +1,19 @@
 use axum::Router;
-use axum_login::{
-    axum_sessions::{async_session::MemoryStore, SessionLayer},
-    AuthLayer, PostgresStore,
-};
+use axum_login::{AuthManagerLayerBuilder, tower_sessions::SessionManagerLayer};
 use dotenvy::dotenv;
-use rand::Rng;
+use rand::RngExt;
 use sqlx::PgPool;
 use std::{env, net::IpAddr};
 use tower_http::{
     cors::CorsLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
 };
+use tower_sessions::cookie::time::Duration;
+use tower_sessions::{MemoryStore, cookie::Key};
 use tracing::Level;
 use tracing_subscriber::prelude::*;
-use user::User;
+
+use crate::user::Backend;
 
 mod chat;
 mod error;
@@ -21,7 +21,6 @@ mod options;
 mod stream;
 mod user;
 mod webhook;
-mod notifier;
 
 async fn connect_to_db(db_url: &str) -> sqlx::Result<PgPool> {
     let db_pool = PgPool::connect(db_url).await?;
@@ -64,13 +63,19 @@ async fn main() -> anyhow::Result<()> {
                 Err(env::VarError::NotPresent)
             }
         })
-        .unwrap_or(rand::thread_rng().gen::<[u8; 64]>().into());
+        .unwrap_or(rand::rng().random::<[u8; 64]>().into());
     let db_pool = connect_to_db(&db_url).await?;
-    let user_store = PostgresStore::<User>::new(db_pool.clone());
+    let backend = Backend {
+        db: db_pool.clone(),
+    };
 
-    let session_store = MemoryStore::new();
-    let session_layer = SessionLayer::new(session_store, &secret).with_secure(false);
-    let auth_layer = AuthLayer::new(user_store, &secret);
+    let session_store = MemoryStore::default();
+    let key = Key::from(&secret);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(tower_sessions::Expiry::OnInactivity(Duration::days(1)))
+        .with_signed(key);
+    let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
     let cors = CorsLayer::very_permissive();
 
     tracing::info!("Starting server on {}:{}", host, port);
@@ -80,7 +85,6 @@ async fn main() -> anyhow::Result<()> {
         .nest("/stream", stream::routes())
         .nest("/chat", chat::routes())
         .layer(auth_layer)
-        .layer(session_layer)
         .layer(cors)
         .layer(
             TraceLayer::new_for_http()
@@ -89,9 +93,10 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(db_pool);
 
-    axum::Server::bind(&(host.parse::<IpAddr>()?, port.parse()?).into())
-        .serve(app.into_make_service())
-        .await?;
+    let listener =
+        tokio::net::TcpListener::bind(&(host.parse::<IpAddr>()?, port.parse::<u16>()?)).await?;
+
+    axum::serve(listener, app.into_make_service()).await?;
 
     Ok(())
 }

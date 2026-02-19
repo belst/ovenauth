@@ -1,6 +1,8 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use thiserror::Error;
 
+use crate::user::Backend;
+
 #[derive(Error, Debug)]
 pub enum OvenauthError {
     #[error(transparent)]
@@ -11,6 +13,8 @@ pub enum OvenauthError {
     Axum(#[from] axum::Error),
     #[error(transparent)]
     Recv(#[from] tokio::sync::broadcast::error::RecvError),
+    #[error(transparent)]
+    Auth(#[from] axum_login::Error<Backend>),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }

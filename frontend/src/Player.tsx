@@ -44,6 +44,7 @@ function player(el: Element, props: () => PlayerProps) {
         const player = OvenPlayer.create(el, {
             volume: volume(),
             autoStart: props().autoplay ?? false,
+            autoFallback: false,
             webrtcConfig: {
                 timeoutMaxRetry: 1000000,
                 connectionTimeout: 5000

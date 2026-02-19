@@ -1,6 +1,6 @@
-use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
+use axum::{Json, Router, extract::State, response::IntoResponse, routing::post};
 use chrono::Utc;
-use serde::{de::Visitor, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::Visitor};
 use sqlx::PgPool;
 use url::Url;
 
@@ -150,13 +150,17 @@ async fn webhook(State(db): State<PgPool>, Json(body): Json<Config>) -> WebhookR
     let token = creds[1];
 
     let user = match User::from_token(token, &db).await {
-        Ok(user) => user,
+        Ok(Some(user)) => user,
+        Ok(None) => {
+            return WebhookResponse::denied("Invalid Token".to_string());
+        }
         Err(e) => {
             tracing::error!("{e}");
             return WebhookResponse::denied(format!("{e}"));
         }
     };
     url.set_path(&format!("app/{}", user.username));
+    // TODO: is this actually any good?
     WebhookResponse::redirect(url.to_string())
 }
 

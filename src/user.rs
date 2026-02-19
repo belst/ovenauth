@@ -1,31 +1,23 @@
-use std::{env, str::FromStr};
+use std::env;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use axum::{
+    Extension, Json, Router,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
-    Extension, Json, Router,
 };
-use axum_login::{
-    secrecy::{ExposeSecret, SecretString, SecretVec},
-    AuthUser, PostgresStore, RequireAuthorizationLayer,
-};
-use rand::Rng;
+use axum_login::{AuthUser, AuthnBackend, login_required};
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::{postgres::PgRow, FromRow, PgPool, Row};
+use sqlx::{FromRow, PgPool, Row, postgres::PgRow};
 
 use crate::{
     error::OvenauthError,
     options::{StreamOptions, UpdateStreamOptions},
 };
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserWrapper<T: std::fmt::Debug + Serialize> {
-    user: T,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginCredentials {
@@ -46,8 +38,36 @@ pub struct User {
     pub id: i32,
     pub username: String,
     #[serde(skip)]
-    pub password: SecretString,
+    // TODO SecretString
+    pub password: String,
     pub hidden: bool,
+}
+
+#[derive(Clone)]
+pub struct Backend {
+    pub db: PgPool,
+}
+
+impl AuthnBackend for Backend {
+    type User = User;
+
+    type Credentials = LoginCredentials;
+
+    type Error = sqlx::Error;
+
+    fn authenticate(
+        &self,
+        creds: Self::Credentials,
+    ) -> impl Future<Output = std::result::Result<Option<Self::User>, Self::Error>> + Send {
+        User::from_creds(creds, &self.db)
+    }
+
+    fn get_user(
+        &self,
+        user_id: &axum_login::UserId<Self>,
+    ) -> impl Future<Output = std::result::Result<Option<Self::User>, Self::Error>> + Send {
+        User::from_id(*user_id, &self.db)
+    }
 }
 
 impl<'r> FromRow<'r, PgRow> for User {
@@ -55,57 +75,72 @@ impl<'r> FromRow<'r, PgRow> for User {
         Ok(Self {
             id: row.try_get("id")?,
             username: row.try_get("username")?,
-            password: SecretString::from_str(row.try_get("password")?).expect("Infallible"),
+            // password: SecretString::from_str(row.try_get("password")?).expect("Infallible"),
+            password: row.try_get("password")?,
             hidden: row.try_get("hidden")?,
         })
     }
 }
 
 impl User {
-    pub async fn from_token(token: &str, pool: &PgPool) -> Result<User> {
+    pub async fn from_token(token: &str, pool: &PgPool) -> sqlx::Result<Option<User>> {
         let user = sqlx::query_as!(
-            User,
-            "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
-            token
-        )
-        .fetch_one(pool)
-        .await?;
+                User,
+                "select u.username, u.id, u.password, u.hidden from users u, options o where u.id = o.user_id and o.token = $1",
+                token
+            )
+            .fetch_optional(pool)
+            .await?;
 
         Ok(user)
     }
 
-    pub async fn from_creds(creds: &LoginCredentials, db: &PgPool) -> Result<User> {
-        let user = sqlx::query_as!(
+    pub async fn from_id(id: i32, pool: &PgPool) -> sqlx::Result<Option<User>> {
+        let Some(user) = sqlx::query_as!(
+            User,
+            "select id, username, password, hidden from users where id = $1",
+            id
+        )
+        .fetch_optional(pool)
+        .await?
+        else {
+            return Ok(None);
+        };
+
+        Ok(Some(user))
+    }
+
+    pub async fn from_creds(creds: LoginCredentials, db: &PgPool) -> sqlx::Result<Option<User>> {
+        let Some(user) = sqlx::query_as!(
             User,
             "select id, username, password, hidden from users where username = $1",
             &creds.username
         )
-        .fetch_one(db)
-        .await?;
+        .fetch_optional(db)
+        .await?
+        else {
+            return Ok(None);
+        };
 
         let verified =
-            argon2::verify_encoded(&user.password.expose_secret(), creds.password.as_bytes())?;
+            argon2::verify_encoded(&user.password, creds.password.as_bytes()).expect("Infallible");
 
-        if verified {
-            Ok(user)
-        } else {
-            bail!("Invalid credentials")
-        }
+        if verified { Ok(Some(user)) } else { Ok(None) }
     }
 
     pub async fn create_from_creds(creds: &RegisterCreds, db: &PgPool) -> Result<User> {
-        let salt = rand::thread_rng().gen::<[u8; 16]>();
+        let salt = rand::rng().random::<[u8; 16]>();
         let password =
             argon2::hash_encoded(creds.password.as_bytes(), &salt, &argon2::Config::default())?;
 
         let user = sqlx::query_as!(
-            User,
-            "insert into users (username, password) values ($1, $2) returning id, username, password, hidden",
-            &creds.username,
-            &password
-        )
-        .fetch_one(db)
-        .await?;
+                User,
+                "insert into users (username, password) values ($1, $2) returning id, username, password, hidden",
+                &creds.username,
+                &password
+            )
+            .fetch_one(db)
+            .await?;
 
         let _ = StreamOptions::create(user.id, db).await?;
 
@@ -116,10 +151,10 @@ impl User {
         let users = sqlx::query_as!(
             User,
             r#"
-                select * from users
-                where hidden = false
-                and ($1 or id in (select user_id from options where public))
-                "#,
+                    select * from users
+                    where hidden = false
+                    and ($1 or id in (select user_id from options where public))
+                    "#,
             show_all
         )
         .fetch_all(db)
@@ -129,21 +164,23 @@ impl User {
     }
 }
 
-impl AuthUser<i32> for User {
-    fn get_id(&self) -> i32 {
+impl AuthUser for User {
+    type Id = i32;
+
+    fn id(&self) -> Self::Id {
         self.id
     }
 
-    fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
-        SecretVec::new(self.password.expose_secret().clone().into())
+    fn session_auth_hash(&self) -> &[u8] {
+        self.password.as_bytes()
     }
 }
 
-// ROUTES
-pub type AuthContext = axum_login::extractors::AuthContext<i32, User, PostgresStore<User>>;
+pub type AuthSession = axum_login::AuthSession<Backend>;
 
+// ROUTES
 async fn register(
-    mut auth: AuthContext,
+    mut auth: AuthSession,
     State(db): State<PgPool>,
     Json(creds): Json<RegisterCreds>,
 ) -> Result<Response, OvenauthError> {
@@ -157,17 +194,20 @@ async fn register(
     Ok(Json(json!({ "user": user })).into_response())
 }
 
-pub async fn logout(mut auth: AuthContext) -> impl IntoResponse {
-    auth.logout().await;
+pub async fn logout(mut auth: AuthSession) -> impl IntoResponse {
+    _ = auth.logout().await;
 }
 async fn login(
-    mut auth: AuthContext,
-    State(db): State<PgPool>,
+    mut auth: AuthSession,
     Json(creds): Json<LoginCredentials>,
 ) -> Result<impl IntoResponse, OvenauthError> {
-    let user = User::from_creds(&creds, &db).await?;
-    auth.login(&user).await?;
-    Ok(Json(json!({ "user": user })))
+    let user = auth.authenticate(creds).await?;
+    if let Some(user) = user {
+        auth.login(&user).await?;
+        Ok(Json(json!({ "user": user })))
+    } else {
+        Err(OvenauthError::Other(anyhow::anyhow!("Invalid credentials")))
+    }
 }
 
 async fn index(
@@ -203,7 +243,7 @@ pub fn routes() -> Router<PgPool> {
         .route("/options", get(options).put(update_options))
         .route("/me", get(me))
         .route("/logout", post(logout))
-        .route_layer(RequireAuthorizationLayer::<i32, User>::login())
+        .route_layer(login_required!(Backend))
         .route("/users", get(index))
         .route("/login", post(login))
         .route("/register", post(register))

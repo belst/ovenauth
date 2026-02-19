@@ -1,6 +1,6 @@
-import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext } from 'solid-js';
+import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext, createMemo } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { useNavigate, useParams, useLocation } from '@solidjs/router';
+import { useNavigate, useParams, useLocation, useRouteData } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import type { IncomingMessage, MessagePosition } from './ChatMessage';
@@ -8,6 +8,8 @@ import ChatMessage from './ChatMessage';
 import { IUser } from '../types/user.interface';
 import color from '../utils/colors';
 import { TheaterContext } from '../store/shownav';
+import StreamData from '../Stream.data';
+import Autocomplete from './Autocomplete';
 
 export type JoinMessage = {
     type: "join",
@@ -40,6 +42,7 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const [roomState, setRoomState] = createStore<string[]>([]);
     const [loading, setLoading] = createSignal(true);
 
+    const { emoteSet, globalEmoteSet } = useRouteData<typeof StreamData>();
     const [theater] = useContext(TheaterContext);
 
     const [ws, setWs] = createSignal<WebSocket>();
@@ -175,7 +178,10 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
                                     </div>
                                 )}
                             </Show>
-                            <input ref={setInput} type="text" placeholder="Chat here" class="join-item input input-bordered w-full max-w-xs" />
+                            <div class="relative">
+                                <Autocomplete input={input()} globalEmotes={globalEmoteSet()?.emotes ?? []} customEmotes={emoteSet()?.emotes ?? []} />
+                                <input ref={setInput} type="text" placeholder="Chat here" class="relative join-item input input-bordered w-full max-w-xs" />
+                            </div>
                         </div>
                         <input class="btn self-end" type="submit" value={replying() ? 'Reply' : 'Chat'} />
                     </form>)
