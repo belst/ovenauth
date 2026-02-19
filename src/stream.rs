@@ -1,7 +1,7 @@
 use axum::{
+    Json, Router,
     extract::{Path, State},
     routing::get,
-    Json, Router,
 };
 use sqlx::PgPool;
 
@@ -15,5 +15,5 @@ async fn stream_options(
 }
 
 pub fn routes() -> Router<PgPool> {
-    Router::new().route("/:stream", get(stream_options))
+    Router::new().route("/{stream}", get(stream_options))
 }

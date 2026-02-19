@@ -12,7 +12,7 @@ use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::{broadcast, Mutex, RwLock};
+use tokio::sync::{Mutex, RwLock, broadcast};
 use ulid::Ulid;
 
 use crate::error::OvenauthError;
@@ -88,11 +88,15 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
         let userlistmsg =
             serde_json::to_string(&MessageType::Connect(room.users.keys().cloned().collect()))
                 .expect("serialization to work");
-        err = err || sender.send(Message::Text(userlistmsg)).await.is_err();
+        err = err
+            || sender
+                .send(Message::Text(userlistmsg.into()))
+                .await
+                .is_err();
         for m in room.messagebuffer.read().await.iter() {
             let txt =
                 serde_json::to_string(&MessageType::Msg(m.clone())).expect("serialization to work");
-            err = err || sender.send(Message::Text(txt)).await.is_err();
+            err = err || sender.send(Message::Text(txt.into())).await.is_err();
             if err {
                 break;
             }
@@ -128,7 +132,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
             loop {
                 tokio::select! {
                     _ = tokio::time::sleep(Duration::from_secs(30)) => {
-                        if let Err(e) = sender.send(Message::Ping(vec![1,2,3])).await {
+                        if let Err(e) = sender.send(Message::Ping(vec![1,2,3].into())).await {
                             return OvenauthError::from(e);
                         }
                     },
@@ -145,7 +149,7 @@ async fn handle_socket(socket: WebSocket, room: String, state: ChatState, user: 
                                 return e.into();
                             }
                         };
-                        if let Err(e) = sender.send(Message::Text(msg)).await {
+                        if let Err(e) = sender.send(Message::Text(msg.into())).await {
                             return e.into();
                         }
                     },
@@ -249,7 +253,7 @@ async fn handler(
 
 pub fn routes() -> Router<PgPool> {
     Router::new()
-        .route("/:room", get(handler))
+        .route("/{room}", get(handler))
         .layer(Extension(Arc::new(Mutex::new(
             HashMap::<String, Room>::new(),
         ))))

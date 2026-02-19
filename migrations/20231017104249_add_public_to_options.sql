@@ -1,1 +1,1 @@
-alter table options add column public boolean not null default 't';
+alter table options add column if not exists public boolean not null default 't';
