@@ -16,7 +16,7 @@ use tokio::sync::{Mutex, RwLock, broadcast};
 use ulid::Ulid;
 
 use crate::error::OvenauthError;
-use crate::user::User;
+use crate::user::{AuthSession, User};
 
 #[derive(Debug)]
 struct Room {
@@ -235,7 +235,7 @@ async fn handler(
     Path(room): Path<String>,
     Extension(state): Extension<ChatState>,
     State(pool): State<PgPool>,
-    user: Option<Extension<User>>,
+    auth: AuthSession,
 ) -> Response {
     let valid = sqlx::query_scalar!(
         r#"select count(*) = 1 as "f!" from users where username = $1"#,
@@ -245,7 +245,7 @@ async fn handler(
     .await
     .unwrap_or(false);
     if valid {
-        ws.on_upgrade(|socket| handle_socket(socket, room, state, user.map(|e| e.0)))
+        ws.on_upgrade(|socket| handle_socket(socket, room, state, auth.user))
     } else {
         (StatusCode::NOT_FOUND, "Chatroom not found").into_response()
     }
