@@ -2,7 +2,7 @@ use std::env;
 
 use anyhow::{Context, Result};
 use axum::{
-    Extension, Json, Router,
+    Json, Router,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -212,29 +212,38 @@ async fn login(
 
 async fn index(
     State(db): State<PgPool>,
-    user: Option<Extension<User>>,
+    auth: AuthSession,
 ) -> Result<impl IntoResponse, OvenauthError> {
-    let users = User::all(&db, user.is_some()).await?;
+    let users = User::all(&db, auth.user.is_some()).await?;
     Ok(Json(json!({ "users": users })))
 }
 
-async fn me(Extension(user): Extension<User>) -> impl IntoResponse {
-    Json(json!({ "user": user }))
+async fn me(auth: AuthSession) -> impl IntoResponse {
+    let Some(user) = auth.user else {
+        return Err(OvenauthError::Other(anyhow::anyhow!("Not logged in")));
+    };
+    Ok(Json(json!({ "user": user })))
 }
 
 async fn options(
-    Extension(user): Extension<User>,
+    auth: AuthSession,
     State(db): State<PgPool>,
 ) -> Result<impl IntoResponse, OvenauthError> {
+    let Some(user) = auth.user else {
+        return Err(OvenauthError::Other(anyhow::anyhow!("Not logged in")));
+    };
     let options = StreamOptions::from_user_id(user.id, &db).await?;
     Ok(Json(json!({ "options": options })))
 }
 
 async fn update_options(
-    Extension(user): Extension<User>,
+    auth: AuthSession,
     State(db): State<PgPool>,
     Json(options): Json<UpdateStreamOptions>,
 ) -> Result<impl IntoResponse, OvenauthError> {
+    let Some(user) = auth.user else {
+        return Err(OvenauthError::Other(anyhow::anyhow!("Not logged in")));
+    };
     Ok(Json(options.update(user.id, &db).await?))
 }
 
