@@ -67,7 +67,7 @@ const Dashboard: Component = () => {
 
           <h3 class="text-xl py-4">Stream Token</h3>
           <div class="join">
-            <input ref={tokeninput} class="input font-mono box-content input-bordered join-item w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
+            <input ref={tokeninput} class="input font-mono box-content join-item w-[38ex]" type={inputtype()} readonly value={options()?.token || 'Create Token'} />
             <button type="button" onclick={toggletype} class="join-item btn btn-primary">{icon()}</button>
             <button type="button" onclick={copy} class="join-item btn btn-primary">Copy</button>
             <button type="button" onclick={reset} class="join-item btn btn-primary">{options() ? 'reset' : 'create'}</button>
@@ -75,13 +75,13 @@ const Dashboard: Component = () => {
 
           <h3 class="text-xl py-4">7TV.APP Emote Set ID</h3>
           <div class="join">
-            <input ref={emote_id_input} class="input input-bordered join-item box-content" placeholder="7TV Emoteset ID" value={options()?.emote_id ?? ''} />
+            <input ref={emote_id_input} class="input join-item box-content" placeholder="7TV Emoteset ID" value={options()?.emote_id ?? ''} />
             <button type="button" onclick={update_emote_id} disabled={emoteIdLoading()} class="join-item btn btn-primary">Save</button>
           </div>
 
           <h3 class="text-xl py-4">Stream Title</h3>
           <div class="join">
-            <input ref={title_input} class="input input-bordered join-item box-content w-full" placeholder="Stream Title" value={options()?.name ?? ''} />
+            <input ref={title_input} class="input join-item box-content w-full" placeholder="Stream Title" value={options()?.name ?? ''} />
             <button type="button" onclick={update_title} class="join-item btn btn-primary">Save</button>
           </div>
 

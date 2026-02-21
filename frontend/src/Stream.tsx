@@ -42,7 +42,7 @@ const Stream: Component = () => {
                 <Show when={!theater()}>
                     <div class="md:flex hidden flex-col pt-1 pl-1" classList={{ 'mr-80': sidebaropen() }}>
                         <div class="flex flex-row">
-                            <div class="avatar placeholder">
+                            <div class="avatar avatar-placeholder">
                                 <div class="w-24 mask mask-squircle bg-neutral-focus text-neutral-content">
                                     <span class="text-3xl">{params.user.substring(0, 2)}</span>
                                 </div>

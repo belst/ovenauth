@@ -44,25 +44,25 @@ const Register: Component = () => {
                     <label class="label">
                         <span class="label-text">Username</span>
                     </label>
-                    <input type="text" name="username" placeholder="Username" class="input input-bordered" />
+                    <input type="text" name="username" placeholder="Username" class="input" />
                 </div>
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Password</span>
                     </label>
-                    <input type="password" name="password" placeholder="Password" class="input input-bordered" />
+                    <input type="password" name="password" placeholder="Password" class="input" />
                 </div>
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Password (Confirmation)</span>
                     </label>
-                    <input type="password" name="password_confirmation" placeholder="Password" class="input input-bordered" />
+                    <input type="password" name="password_confirmation" placeholder="Password" class="input" />
                 </div>
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">Secret</span>
                     </label>
-                    <input type="password" name="secret_code" placeholder="Secret Code" class="input input-bordered" />
+                    <input type="password" name="secret_code" placeholder="Secret Code" class="input" />
                 </div>
                 <input type="submit" class="float-right btn btn-primary" value="Register" />
             </form>

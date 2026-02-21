@@ -39,19 +39,22 @@ const Login: Component = () => {
     <Layout>
       <Title value="Login" />
       <form onSubmit={prevent(submit)}>
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Username</span>
+        <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs p-4 mx-auto">
+          <legend class="fieldset-legend">Login</legend>
+
+          <label class="floating-label">
+            <input class="input" name="username" type="text" placeholder="Username" />
+            <span class="label">Username</span>
           </label>
-          <input type="text" name="username" placeholder="Username" class="input input-bordered" />
-        </div>
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text">Password</span>
+
+
+          <label class="floating-label">
+            <input class="input" name="password" type="password" placeholder="Password" />
+            <span class="label">Password</span>
           </label>
-          <input type="password" name="password" placeholder="Password" class="input input-bordered" />
-        </div>
-        <input type="submit" class="float-right btn btn-primary" value="Login" />
+
+          <button class="btn btn-neutral mt-4">Login</button>
+        </fieldset>
       </form>
       <Show when={errors()}>
         {(errors) => <div>{JSON.stringify(errors)}</div>}
