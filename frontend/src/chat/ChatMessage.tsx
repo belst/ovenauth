@@ -1,11 +1,11 @@
 import { Show, type Component, createMemo } from 'solid-js';
-import { createAsync } from '@solidjs/router';
+import { createAsync, useParams } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import { DateTime } from 'luxon';
 import color from '../utils/colors';
-import StreamData from '../Stream.data';
 import { IUser } from '../types/user.interface';
+import { getEmotes, getGlobalEmotes } from '../Stream.data';
 //struct OutgoingMessage {
 //    message_id: Ulid,
 //    content: String,
@@ -68,8 +68,9 @@ function parseEmotes(msg: string, emotes: any[], user?: IUser) {
 const ChatMessage: Component<Props> = (props) => {
     const authService = useService(AuthService);
     const datetime = createMemo(() => DateTime.fromISO(props.message.timestamp));
+    const params = useParams();
 
-    const emoteSet = createAsync(getEmotes);
+    const emoteSet = createAsync(() => getEmotes(params.user));
     const globalEmoteSet = createAsync(getGlobalEmotes);
 
     const message = createMemo(() => {

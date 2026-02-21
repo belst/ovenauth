@@ -1,4 +1,3 @@
-import { createResource } from "solid-js";
 import { query } from "@solidjs/router";
 
 export type PublicStreamOptions = {

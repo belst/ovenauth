@@ -1,4 +1,4 @@
-import { Component, createEffect, createResource, createSignal, ErrorBoundary, onCleanup, onMount } from "solid-js";
+import { Component, createEffect, createResource, createSignal, onCleanup, onMount } from "solid-js";
 
 const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElement }> = (props) => {
     const endpoint = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL;
@@ -17,7 +17,7 @@ const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElemen
 
     const [img, { refetch }] = createResource(() => props.name, fetcher);
 
-    let timeout;
+    let timeout: number;
 
     const update = () => {
         refetch();
@@ -26,11 +26,11 @@ const Thumbnail: Component<{ name: string, interval?: number, hover?: HTMLElemen
 
     let oldintervaldur = intervalDuration();
 
-    let enter = (e: MouseEvent) => {
+    let enter = () => {
         oldintervaldur = intervalDuration();
         setIntervalDuration(1000);
     }
-    let leave = (e) => {
+    let leave = () => {
         setIntervalDuration(oldintervaldur);
     }
 

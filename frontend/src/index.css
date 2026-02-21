@@ -1,6 +1,6 @@
 @import "tailwindcss";
+/* TODO: themes */
 @plugin "daisyui";
-
 
 :root {
   --op-accent-color: hsl(var(--a));

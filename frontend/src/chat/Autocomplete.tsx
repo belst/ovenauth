@@ -1,5 +1,5 @@
-import { Component, For, JSX, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
-import { Emote } from "../Stream.data";
+import { type Component, For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { type Emote } from "../Stream.data";
 
 type Props = {
     globalEmotes: Array<Emote>;

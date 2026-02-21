@@ -1,4 +1,4 @@
-import { useParams,  useSearchParams, createAsync } from "@solidjs/router";
+import { useParams, useSearchParams, createAsync } from "@solidjs/router";
 import { Component, Show, Suspense, useContext } from "solid-js";
 import Title from "./Title";
 import player from "./Player";
@@ -16,7 +16,7 @@ const Stream: Component = () => {
     const sidebaropen = () => !search.sidebar;
     const setSidebaropen = (value: boolean) => setSearch({ sidebar: value ? '' : '1' });
     const showIcon = (
-        <svg fill="currentColor" version="1.1" class="h-6 w-6 -scale-x-100" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
+        <svg fill="currentColor" class="h-6 w-6 -scale-x-100" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
             <path d="M4 16V4H2v12h2zM13 15l-1.5-1.5L14 11H6V9h8l-2.5-2.5L13 5l5 5-5 5z"></path>
         </svg>
     );
@@ -33,7 +33,7 @@ const Stream: Component = () => {
                     'w-full': !sidebaropen(),
                     'bg-black': theater(),
                 }}>
-                    <div use: player={{
+                    <div use:player={{
                         user: params.user,
                         autoplay: true,
                         scroll: false

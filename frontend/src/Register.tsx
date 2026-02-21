@@ -24,7 +24,7 @@ const Register: Component = () => {
         return location.state?.redirectTo || '/';
     });
 
-    const submit = (e) => {
+    const submit = (e: { currentTarget: HTMLFormElement; }) => {
         const data = new FormData(e.currentTarget);
         const body = Object.fromEntries(data) as any;
 

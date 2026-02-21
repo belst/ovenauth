@@ -1,4 +1,4 @@
-import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext, createMemo } from 'solid-js';
+import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { useNavigate, useParams, useLocation, createAsync } from '@solidjs/router';
 import { useService } from 'solid-services';
@@ -42,7 +42,7 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const [roomState, setRoomState] = createStore<string[]>([]);
     const [loading, setLoading] = createSignal(true);
 
-    const emoteSet = createAsync(getEmotes);
+    const emoteSet = createAsync(() => getEmotes(params.user));
     const globalEmoteSet = createAsync(getGlobalEmotes);
     const [theater] = useContext(TheaterContext);
 
@@ -125,7 +125,7 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     }
 
     const hideIcon = (
-        <svg fill="currentColor" version="1.1" class="h-6 w-6" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
+        <svg fill="currentColor" class="h-6 w-6" viewBox="0 0 20 20" x="0px" y="0px" aria-hidden="true">
             <path d="M4 16V4H2v12h2zM13 15l-1.5-1.5L14 11H6V9h8l-2.5-2.5L13 5l5 5-5 5z"></path>
         </svg>
     );

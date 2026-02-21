@@ -4,6 +4,7 @@ import OvenPlayer from 'ovenplayer';
 import { TheaterContext } from "./store/shownav";
 
 // Needed for hls playback Sadge
+// TODO: maybe not needed anymore with updated player
 (window as any).Hls = Hls;
 
 export interface PlayerProps {
@@ -18,6 +19,10 @@ declare module "solid-js" {
             player: PlayerProps;
         }
     }
+}
+
+declare module 'ovenplayer' {
+    export function create(container: string | Node, config: OvenPlayer.OvenPlayerConfig): OvenPlayer.OvenPlayerInstance
 }
 
 function player(el: Element, props: () => PlayerProps) {
@@ -63,8 +68,8 @@ function player(el: Element, props: () => PlayerProps) {
             ],
         });
         let timeout: number;
+        player.on('volumeChanged', n => setVolume(n.mute ? 0 : n.volume));
         player.once('ready', () => player.play());
-        player.on('volumeChanged', n => setVolume(n));
         player.on('stateChanged', s => {
             if (['playing', 'loading'].includes(s.prevstate) && s.newstate === 'error') {
                 timeout = setTimeout(() => player.play(), 1000);
