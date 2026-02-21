@@ -4,17 +4,15 @@ import { Router } from '@solidjs/router';
 
 import App from "./App";
 import { ServiceRegistry } from "solid-services";
-import { TheaterProvider } from "./store/shownav";
+import { routes } from "./routes";
 
 render(
-    () => (
-        <ServiceRegistry>
-            <Router>
-                <TheaterProvider>
-                    <App />
-                </TheaterProvider>
-            </Router>
-        </ServiceRegistry>
-    ),
-    document.getElementById("root")
+  () => (
+    <ServiceRegistry>
+      <Router root={App}>
+        {routes}
+      </Router>
+    </ServiceRegistry>
+  ),
+  document.getElementById("root")
 );

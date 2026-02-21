@@ -1,6 +1,6 @@
 import { createSignal, type Component, createEffect, For, Show, onCleanup, useContext, createMemo } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { useNavigate, useParams, useLocation, useRouteData } from '@solidjs/router';
+import { useNavigate, useParams, useLocation, createAsync } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import type { IncomingMessage, MessagePosition } from './ChatMessage';
@@ -8,7 +8,7 @@ import ChatMessage from './ChatMessage';
 import { IUser } from '../types/user.interface';
 import color from '../utils/colors';
 import { TheaterContext } from '../store/shownav';
-import StreamData from '../Stream.data';
+import { getEmotes, getGlobalEmotes } from '../Stream.data';
 import Autocomplete from './Autocomplete';
 
 export type JoinMessage = {
@@ -42,7 +42,8 @@ const Chat: Component<{ toggleSidebar?: () => void }> = (props) => {
     const [roomState, setRoomState] = createStore<string[]>([]);
     const [loading, setLoading] = createSignal(true);
 
-    const { emoteSet, globalEmoteSet } = useRouteData<typeof StreamData>();
+    const emoteSet = createAsync(getEmotes);
+    const globalEmoteSet = createAsync(getGlobalEmotes);
     const [theater] = useContext(TheaterContext);
 
     const [ws, setWs] = createSignal<WebSocket>();

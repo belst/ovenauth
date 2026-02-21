@@ -1,9 +1,9 @@
 import { Show, type Component, createMemo } from 'solid-js';
+import { createAsync } from '@solidjs/router';
 import { useService } from 'solid-services';
 import { AuthService } from '../store/AuthService';
 import { DateTime } from 'luxon';
 import color from '../utils/colors';
-import { useRouteData } from '@solidjs/router';
 import StreamData from '../Stream.data';
 import { IUser } from '../types/user.interface';
 //struct OutgoingMessage {
@@ -69,7 +69,8 @@ const ChatMessage: Component<Props> = (props) => {
     const authService = useService(AuthService);
     const datetime = createMemo(() => DateTime.fromISO(props.message.timestamp));
 
-    const { emoteSet, globalEmoteSet } = useRouteData<typeof StreamData>();
+    const emoteSet = createAsync(getEmotes);
+    const globalEmoteSet = createAsync(getGlobalEmotes);
 
     const message = createMemo(() => {
         let emotes = globalEmoteSet()?.emotes ?? [];

@@ -1,5 +1,5 @@
-import { Link } from "@solidjs/router";
 import { Component, For } from "solid-js";
+import { A } from "@solidjs/router";
 import { useService } from "solid-services";
 import Layout from "./Layout";
 import { AuthService } from "./store/AuthService";
@@ -23,7 +23,7 @@ const Home: Component = () => {
                                 <h2 class="card-title">{user.username}</h2>
                                 <ViewCount interval={10000} name={user.username}></ViewCount>
                                 <div class="card-actions">
-                                    <Link href={`/${user.username}`} class="btn btn-primary">Watch</Link>
+                                    <A href={`/${user.username}`} class="btn btn-primary">Watch</A>
                                 </div>
                             </div>
                         </div>

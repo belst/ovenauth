@@ -1,17 +1,19 @@
-import { useRoutes } from "@solidjs/router";
 import { Component } from "solid-js";
+import { Router } from "@solidjs/router";
 import Navbar from "./Navbar";
+import { TheaterProvider } from "./store/shownav";
 
 import { routes } from "./routes";
 
-const App: Component = () => {
+const App: Component = (props) => {
 
-  const Router = useRoutes(routes);
   return (
-    <div class="flex flex-col h min-h-screen">
-      <Navbar />
-      <Router />
-    </div>
+    <TheaterProvider>
+      <div class="flex flex-col h min-h-screen">
+        <Navbar />
+        {props.children}
+      </div>
+    </TheaterProvider>
   );
 };
 

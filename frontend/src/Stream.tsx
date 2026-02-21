@@ -1,16 +1,16 @@
-import { useParams, useRouteData, useSearchParams } from "@solidjs/router";
+import { useParams,  useSearchParams, createAsync } from "@solidjs/router";
 import { Component, Show, Suspense, useContext } from "solid-js";
 import Title from "./Title";
 import player from "./Player";
 import Chat from "./chat/Chat";
-import StreamData from "./Stream.data";
+import { getStreamInfo } from "./Stream.data";
 import { TheaterContext } from "./store/shownav";
 player;
 
 const Stream: Component = () => {
     const params = useParams();
     const [search, setSearch] = useSearchParams();
-    const { streamInfo: data } = useRouteData<typeof StreamData>();
+    const data = createAsync(getStreamInfo);
 
     const [theater] = useContext(TheaterContext);
     const sidebaropen = () => !search.sidebar;

@@ -1,4 +1,5 @@
 import { createResource } from "solid-js";
+import { query } from "@solidjs/router";
 
 export type PublicStreamOptions = {
   name?: string,
@@ -59,9 +60,16 @@ export type EmoteSet = {
   owner: Owner,
 };
 
-async function getEmotes(streamInfo: PublicStreamOptions): Promise<EmoteSet> {
-  if (streamInfo.emote_id) {
-    return await fetch(`https://7tv.io/v3/emote-sets/${streamInfo.emote_id}`)
+
+export const getStreamInfo = query(async (user: string) => {
+  const url = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL + import.meta.env.VITE_APIPATH + '/stream/' + user;
+
+  return await fetch(url).then(r => r.json());
+}, "streamInfo");
+
+export const getEmotes = query(async (emote_id?: string): Promise<EmoteSet> => {
+  if (emote_id) {
+    return await fetch(`https://7tv.io/v3/emote-sets/${emote_id}`)
       .then(b => b.json());
   }
   return ({
@@ -83,18 +91,11 @@ async function getEmotes(streamInfo: PublicStreamOptions): Promise<EmoteSet> {
       roles: []
     }
   })
+}, "emoteSet");
+
+export const getGlobalEmotes = () => getEmotes("global");
+
+export const preloadStreamData = ({ params }) => {
+  getStreamInfo(params.user).then(s => getEmotes(s.emote_id));
+  getGlobalEmotes();
 }
-
-async function getStreamInfo(user: string): Promise<PublicStreamOptions> {
-  const url = import.meta.env.VITE_PROTOCOL + import.meta.env.VITE_BASEURL + import.meta.env.VITE_APIPATH + '/stream/' + user;
-
-  return await fetch(url).then(r => r.json());
-}
-export default function StreamData({ params }) {
-  const [streamInfo] = createResource(() => params.user, getStreamInfo);
-  const [emoteSet] = createResource(streamInfo, getEmotes);
-  const [globalEmoteSet] = createResource(() => getEmotes({ emote_id: 'global' }));
-
-  return { streamInfo, emoteSet, globalEmoteSet };
-}
-
