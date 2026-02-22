@@ -18,57 +18,42 @@ const Navbar: Component = () => {
 
     return (
         <Show when={!theater()}>
-            <nav class="flex z-10 items-center justify-between flex-wrap w-full bg-neutral text-neutral-content p-2 fixed">
-                <div class="flex-none px-2 mx-2" onclick={() => navigate("/", { replace: true })}
-                    onTouchEnd={() => navigate("/", { replace: true })} >
-                    <span class="text-lg font-bold">
-                        {import.meta.env.VITE_PAGE_TITLE}
-                    </span>
+            <div class="navbar bg-base-100 shadow-sm">
+                <div class="flex-1">
+                    <a class="btn btn-ghost text-xl" href="/">{import.meta.env.VITE_PAGE_TITLE}</a>
                 </div>
-                <div class="flex-1 px-2 mx-2">
-                    <div class="items-stretch hidden lg:flex">
-                        <A activeClass="btn-active" end href="/" class="btn btn-ghost btn-sm rounded-btn">
-                            Home
-                        </A>
-                    </div>
-                </div>
-                <div class="block lg:hidden">
-                    <button data-collapse-toggle="mobile-menu-4" class="flex items-center px-3 py-2 border rounded text-default-200 border-white-400 hover:text-white hover:border-white" onclick={() => { setNavbarOpen(!navbarOpen()); }}>
-                        <svg class="fill-current h-3 w-3" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>Menu</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z" /></svg>
-                    </button>
-                </div>
-
-                <div class="w-full block lg:flex lg:items-end lg:w-auto" classList={{ flex: navbarOpen(), hidden: !navbarOpen() }}>
-                    <div class="text-sm lg:flex-grow">
+                <div class="flex-none">
+                    <ul class="menu menu-horizontal px-1">
                         <Switch>
                             <Match when={authService().user}>
-                                <div class="block mt-4 lg:inline-block lg:mt-0 text-default-200 hover:text-white mr-4">
-                                    <A activeClass="btn-active" href="/dashboard" class="btn btn-ghost btn-sm rounded-btn">
+                                <li>
+                                    <A activeClass="menu-active" href="/dashboard">
                                         {authService().user.username}
                                     </A>
-                                </div>
-                                <div class="block mt-4 lg:inline-block lg:mt-0 text-default-200 hover:text-white mr-4">
+                                </li>
+                                <li>
                                     <button onClick={logout} class="btn btn-ghost btn-sm rounded-btn">
                                         Logout
                                     </button>
-                                </div>
+                                </li>
                             </Match>
                             <Match when={!authService().user}>
-                                <div class="block mt-4 lg:inline-block lg:mt-0 text-default-200 hover:text-white mr-4">
-                                    <A activeClass="btn-active" href="/login" class="btn btn-ghost btn-sm rounded-btn">
+                                <li>
+                                    <A activeClass="menu-active" href="/login">
                                         Login
                                     </A>
-                                </div>
-                                <div class="block mt-4 lg:inline-block lg:mt-0 text-default-200 hover:text-white mr-4">
-                                    <A activeClass="btn-active" href="/register" class="btn btn-ghost btn-sm rounded-btn">
+                                </li>
+                                <li>
+                                    <A activeClass="menu-active" href="/register">
                                         Register
                                     </A>
-                                </div>
+                                </li>
                             </Match>
                         </Switch>
-                    </div>
+
+                    </ul>
                 </div>
-            </nav>
+            </div>
         </Show>
     )
 }

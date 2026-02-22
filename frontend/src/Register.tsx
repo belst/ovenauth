@@ -40,31 +40,26 @@ const Register: Component = () => {
         <Layout>
             <Title value="Register" />
             <form onSubmit={prevent(submit)}>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Username</span>
+                <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs p-4 mx-auto">
+                    <legend class="fieldset-legend">Register</legend>
+                    <label class="floating-label">
+                        <span>Username</span>
+                        <input type="text" name="username" placeholder="Username" class="input input-md" />
                     </label>
-                    <input type="text" name="username" placeholder="Username" class="input" />
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Password</span>
+                    <label class="floating-label">
+                        <span>Password</span>
+                        <input type="password" name="password" placeholder="Password" class="input input-md" />
                     </label>
-                    <input type="password" name="password" placeholder="Password" class="input" />
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Password (Confirmation)</span>
+                    <label class="floating-label">
+                        <span>Password (Confirmation)</span>
+                        <input type="password" name="password_confirmation" placeholder="Password (Confirmation)" class="input input-md" />
                     </label>
-                    <input type="password" name="password_confirmation" placeholder="Password" class="input" />
-                </div>
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Secret</span>
+                    <label class="floating-label">
+                        <span>Secret</span>
+                        <input type="password" name="secret_code" placeholder="Secret Code" class="input input-md" />
                     </label>
-                    <input type="password" name="secret_code" placeholder="Secret Code" class="input" />
-                </div>
-                <input type="submit" class="float-right btn btn-primary" value="Register" />
+                    <input type="submit" class="btn btn-primary" value="Register" />
+                </fieldset>
             </form>
             <Show when={errors()}>
                 {(errors) => <div>{JSON.stringify(errors)}</div>}
